@@ -224,6 +224,19 @@ wheels = [
 ]
 
 [[package]]
+name = "flake8-class-attributes-order"
+version = "0.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "flake8" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/57/e1/b466e241e97c163ea082c549cdf02817380be01014477c56bf3cbd5946d3/flake8_class_attributes_order-0.3.0.tar.gz", hash = "sha256:ec5f6c8ffbab8c2fce71e04936418efbb3e36e58649752d646bbbf6902c35c44", size = 11892, upload-time = "2025-03-20T15:42:16.223Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2c/c0/a3cd8ada22618643fb60cbd73b9f8c61d9fc0688130bdf41e6de51055fd8/flake8_class_attributes_order-0.3.0-py3-none-any.whl", hash = "sha256:8bc901323de30fbf0d0ca62cf98610d79ccb861db89ec388249f95327d3afe67", size = 9959, upload-time = "2025-03-20T15:42:14.723Z" },
+]
+
+[[package]]
 name = "flake8-pyproject"
 version = "1.2.4"
 source = { registry = "https://pypi.org/simple" }
@@ -264,6 +277,7 @@ changelog = [
 dev = [
     { name = "black" },
     { name = "flake8" },
+    { name = "flake8-class-attributes-order" },
     { name = "flake8-pyproject" },
     { name = "mypy" },
 ]
@@ -280,6 +294,7 @@ changelog = [{ name = "towncrier" }]
 dev = [
     { name = "black" },
     { name = "flake8" },
+    { name = "flake8-class-attributes-order" },
     { name = "flake8-pyproject" },
     { name = "mypy" },
 ]

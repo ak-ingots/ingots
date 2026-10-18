@@ -54,6 +54,13 @@ One test: `uv run python -m unittest tests.test_canary.CanaryTestCase`.
   `.github/workflows/ci.yml`. Change them together.
 - CI runs exactly the `make` targets; a new check goes into `make check` and
   `ci.yml` together.
+- Code layout and naming follow ADR 0007: class members and module contents
+  top-down, verbs for methods, `Base` only for incomplete classes
+  (`@abc.abstractmethod`, no `ABC`), mixin members under the mixin's prefix
+  (`_slots_get_project`), module functions for services on a class, type
+  parameters named after what fills them. `flake8-class-attributes-order`
+  checks the member order; `__init_subclass__` takes an explicit
+  `@classmethod`.
 
 ## Design
 

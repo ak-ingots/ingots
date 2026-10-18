@@ -41,6 +41,7 @@ environments = ["sys_platform == 'linux'", "sys_platform == 'darwin'"]
 dev = [
     "black",
     "flake8",
+    "flake8-class-attributes-order",
     "flake8-pyproject",
     "mypy",
 ]
@@ -58,6 +59,23 @@ line-length = 88
 exclude = [".git", ".venv"]
 max-line-length = 88
 extend-ignore = ["E203", "E701", "E704"]
+# Member order of ADR 0007 (ingots-libs). `__init_subclass__` is written with an
+# explicit @classmethod, so it is checked as a class method.
+class_attributes_order = [
+    "nested_class",
+    "constant",
+    "field",
+    "static_method",
+    "protected_static_method",
+    "class_method",
+    "protected_class_method",
+    "__init__",
+    "property_method",
+    "protected_property_method",
+    "magic_method",
+    "method",
+    "protected_method",
+]
 
 [tool.mypy]
 strict = true
