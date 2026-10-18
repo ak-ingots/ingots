@@ -1,0 +1,65 @@
+# CLAUDE.md
+
+Guidance for Claude Code in this repository. Keep it under 200 lines and do not
+repeat what README, `docs/` or the ADRs say: link to them.
+
+## What this is
+
+`ingots`: statically typed composition of Python applications from reusable
+addons. Being rewritten from scratch: the package is empty so far. A library
+(ADR 0003), Python >= 3.14, part of the
+[ak-ingots](https://github.com/ak-ingots) ecosystem; the meta repository
+`ingots-libs` holds the ecosystem-wide decisions in `docs/adr/`.
+
+## Commands
+
+Everything goes through `make` (run `make` alone for the target list); uv
+provides the environments and interpreters.
+
+```bash
+make check        # what CI runs: lint, test, wheel-test, doc, cl-check
+make lint         # black --check, flake8, mypy --strict
+make test         # unittest on the working tree
+make wheel-test   # unittest on the built wheel, PYTHONS="3.14 3.15"
+make format       # black
+make doc          # apidoc, then Sphinx; warnings are errors
+make doc-serve    # doc, then serve docs/build/ [DOC_HOST=127.0.0.1 DOC_PORT=8000]
+```
+
+One test: `uv run python -m unittest tests.test_canary.CanaryTestCase`.
+
+## Commits and GitHub
+
+- Never commit, amend, push, tag or rewrite history on your own initiative:
+  show a summary and the proposed message, wait for an explicit approval of
+  that commit. One approval does not extend to the next.
+- The remote is `ak-ingots/ingots`. Inside the `ingots-libs` checkout, run gh
+  and git network commands as `direnv exec /home/bee/work/ingots-libs <cmd>`
+  (the token comes from its `.envrc`; never read it). Release tags are
+  `vX.Y.Z`, the version is bumped with `uv version --bump`.
+
+## Rules
+
+- Every change users should know about adds a fragment to `changelog.d/`
+  (`<issue>.<type>.md` or `+<slug>.<type>.md`, see `changelog.d/README.md`);
+  `cl-check` fails CI without one.
+- The version is static in `pyproject.toml` (`uv_build`, no setuptools-scm);
+  it changes only at release time.
+- Flat layout: the package is `ingots/` at the root. The wheel must be
+  complete: `make wheel-test` imports the package only from the wheel.
+- Tests are stdlib `unittest`, no pytest. Code passes `mypy --strict`; black
+  at 88 columns.
+- The supported interpreters are listed in three places with nothing linking
+  them: `PYTHONS` in the Makefile, the classifiers and the `wheel` matrix in
+  `.github/workflows/ci.yml`. Change them together.
+- CI runs exactly the `make` targets; a new check goes into `make check` and
+  `ci.yml` together.
+
+## Design
+
+Composition follows ADR 0004 (static composition with typed slots; the
+dynamic and generics-based designs were rejected, do not propose them again),
+contract tests ADR 0005, design principles ADR 0006. The prototypes behind ADR
+0004 are in `ingots-libs/docs/design/extension-composition/`. The previous
+implementation (cloned as `ingots-libs/ingots-current/` when present) is a
+reference for the runner, CLI and defaults, not for composition.

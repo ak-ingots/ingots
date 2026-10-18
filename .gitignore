@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.venv/
+build/
+dist/
+.mypy_cache/
+.idea/
+.vscode/
+docs/build/
+docs/modules/

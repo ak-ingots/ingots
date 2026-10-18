@@ -1,0 +1,107 @@
+[project]
+name = "ingots"
+version = "0.30.0.dev0"
+description = "Statically typed composition of Python applications from reusable addons, customizable at any depth."
+readme = "README.md"
+requires-python = ">=3.14"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{name = "Aliaksandr Karotki", email = "abkarotki@gmail.com"}]
+keywords = ["framework", "ingots"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+    "Typing :: Typed",
+]
+dependencies = []
+
+[project.urls]
+repository = "https://github.com/ak-ingots/ingots"
+changelog = "https://github.com/ak-ingots/ingots/blob/main/CHANGELOG.md"
+documentation = "https://ingots.readthedocs.io/"
+
+[build-system]
+requires = ["uv_build>=0.12,<0.13"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "ingots"
+module-root = ""
+
+[tool.uv]
+environments = ["sys_platform == 'linux'", "sys_platform == 'darwin'"]
+
+[dependency-groups]
+dev = [
+    "black",
+    "flake8",
+    "flake8-pyproject",
+    "mypy",
+]
+changelog = ["towncrier"]
+doc = [
+    "sphinx>=8",
+    "sphinx-rtd-theme>=3",
+    "myst-parser>=4",
+]
+
+[tool.black]
+line-length = 88
+
+[tool.flake8]
+exclude = [".git", ".venv"]
+max-line-length = 88
+extend-ignore = ["E203", "E701", "E704"]
+
+[tool.mypy]
+strict = true
+python_version = "3.14"
+enable_error_code = ["deprecated"]
+
+[tool.towncrier]
+name = "Ingots"
+directory = "changelog.d"
+filename = "CHANGELOG.md"
+start_string = "<!-- towncrier release notes start -->\n"
+title_format = "## [{version}] - {project_date}"
+issue_format = "[#{issue}](https://github.com/ak-ingots/ingots/issues/{issue})"
+underlines = ["", "", ""]
+wrap = false
+template = "changelog.d/_template.md"
+ignore = ["README.md", "_template.md"]
+
+[[tool.towncrier.type]]
+directory = "added"
+name = "Added"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "changed"
+name = "Changed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "deprecated"
+name = "Deprecated"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "fixed"
+name = "Fixed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "removed"
+name = "Removed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "security"
+name = "Security"
+showcontent = true

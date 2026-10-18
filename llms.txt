@@ -1,0 +1,23 @@
+# Ingots
+
+> Statically typed composition of Python applications from reusable addons,
+> customizable at any depth. Being rewritten from scratch: the package is
+> empty so far; the design is decided in the ecosystem's ADRs.
+
+## Docs
+
+- [README](README.md): what Ingots is, the development commands
+- [Contributing](docs/contributing.md): make targets, tests on the built wheel, changelog fragments
+- [Changelog fragments](changelog.d/README.md): the mandatory news fragment per change
+
+## Design
+
+- [ADR 0004](https://github.com/ak-ingots/ingots-libs/blob/main/docs/adr/0004-static-composition-with-typed-slots.md): static composition with typed slots
+- [ADR 0005](https://github.com/ak-ingots/ingots-libs/blob/main/docs/adr/0005-addons-ship-contract-tests.md): addons ship contract tests
+- [ADR 0006](https://github.com/ak-ingots/ingots-libs/blob/main/docs/adr/0006-design-principles.md): design principles
+- [Composition concepts](https://github.com/ak-ingots/ingots-libs/blob/main/docs/design/extension-composition/README.md): the prototypes behind ADR 0004
+
+## Optional
+
+- [Makefile](Makefile): how every check actually runs
+- [All ecosystem ADRs](https://github.com/ak-ingots/ingots-libs/tree/main/docs/adr)
