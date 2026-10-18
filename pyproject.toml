@@ -123,3 +123,10 @@ showcontent = true
 directory = "security"
 name = "Security"
 showcontent = true
+
+# Internal changes users need not know about (agent rules, CI, test
+# refactoring): the fragment satisfies `cl-check`, its text is not published.
+[[tool.towncrier.type]]
+directory = "misc"
+name = "Misc"
+showcontent = false

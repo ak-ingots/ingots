@@ -14,9 +14,12 @@ At release time `make cl-build VERSION=X.Y.Z` collates them into a new
   short slug prefixed with `+` (e.g. `+slots`); the `+` keeps it out of the
   issue numbering.
 - `<type>`: one of `added`, `changed`, `deprecated`, `removed`, `fixed`,
-  `security` (Keep a Changelog categories).
+  `security` (Keep a Changelog categories), or `misc` for an internal change
+  users need not know about (agent rules, CI, test refactoring). A `misc`
+  fragment may be empty: it satisfies `make cl-check`, and its text never
+  reaches `CHANGELOG.md`.
 
-Examples: `42.added.md`, `57.fixed.md`, `+slots.added.md`.
+Examples: `42.added.md`, `57.fixed.md`, `+slots.added.md`, `+ci.misc.md`.
 
 ## Content
 

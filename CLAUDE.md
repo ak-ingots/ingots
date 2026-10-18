@@ -37,6 +37,10 @@ One test: `uv run python -m unittest tests.test_canary.CanaryTestCase`.
   and git network commands as `direnv exec /home/bee/work/ingots-libs <cmd>`
   (the token comes from its `.envrc`; never read it). Release tags are
   `vX.Y.Z`, the version is bumped with `uv version --bump`.
+- Linear history: no merge commits, `main` moves by `--ff-only`, small
+  development commits are squashed into one reviewable change each. For now
+  work goes to `main` directly (no branches, no PRs); run `make check` before
+  pushing, CI cannot check the news fragment on a direct push.
 
 ## Rules
 

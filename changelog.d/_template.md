@@ -11,7 +11,8 @@ match the handwritten history in CHANGELOG.md:
 
     ## [0.8.0] - 2025-09-13
 
-Categories stay separated by a single blank line.
+Categories stay separated by a single blank line. Categories with
+`showcontent = false` (misc) are internal and never rendered.
 -#}
 {%- macro heading(level) -%}
     {{- "#" * ( header_prefix | length + level - 1 ) }}
@@ -31,7 +32,7 @@ Categories stay separated by a single blank line.
     {%- endif %}
     {%- if sections[section] %}
         {%- set ns = namespace(first=true) %}
-        {%- for category, val in definitions.items() if category in sections[section] %}
+        {%- for category, val in definitions.items() if category in sections[section] and val["showcontent"] %}
             {#- One blank line between categories, none after the heading. -#}
             {%- if not ns.first %}{{- newline }}{%- endif %}
             {%- set ns.first = false %}
