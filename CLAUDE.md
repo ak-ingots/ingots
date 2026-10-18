@@ -17,9 +17,10 @@ Everything goes through `make` (run `make` alone for the target list); uv
 provides the environments and interpreters.
 
 ```bash
-make check        # what CI runs: lint, test, wheel-test, doc, cl-check
+make check        # what CI runs: lint, test, coverage, wheel-test, doc, cl-check
 make lint         # black --check, flake8, mypy --strict
 make test         # unittest on the working tree
+make coverage     # the same under coverage; fails below 99%
 make wheel-test   # unittest on the built wheel, PYTHONS="3.14 3.15"
 make format       # black
 make doc          # apidoc, then Sphinx; warnings are errors
@@ -27,6 +28,8 @@ make doc-serve    # doc, then serve docs/build/ [DOC_HOST=127.0.0.1 DOC_PORT=800
 ```
 
 One test: `uv run python -m unittest tests.test_canary.CanaryTestCase`.
+Logs of a run: `INGOTS_TEST_LOG=info make test` (test cases derive from
+`tests.TestCase` to show what `assertLogs` captures too).
 
 ## Commits and GitHub
 

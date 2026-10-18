@@ -1,6 +1,6 @@
 """Slots: a parent declares its children as typed descriptors."""
 
-__all__ = ("Slot", "SlotsOwner")
+__all__ = ("Slot", "SlotsOwner", "check_slots", "iter_slots")
 
 import abc
 import inspect

@@ -6,4 +6,5 @@ How an Ingots application is put together, and why.
 :maxdepth: 2
 
 puer
+cli
 ```

@@ -28,8 +28,9 @@ Entity
   of the system through its project.
 
 Runner
-: Drives a project: creates it, runs a command, and shuts it down. It is the
-  only long-lived holder of the project. Not part of the core yet.
+: Drives a project: creates it, configures it, runs a workflow (a command,
+  a server, ...), and shuts it down. It is the only long-lived holder of the project and drops it when
+  done.
 
 ## Slots
 
@@ -123,3 +124,35 @@ reference cycles, and a project dies as soon as its holder drops it.
   the project raises `ReferenceError`.
 - `entity.project` is for immediate use. Kept in an attribute or a callback
   (`self.project.method` binds the project), it keeps the project alive.
+
+## The runner
+
+{py:class}`~ingots.puer.runner.BaseRunner` runs a project in three stages:
+
+1. creates the project and awaits `project.configure()`;
+2. runs the workflow, `run_workflow()`, until it finishes or is stopped;
+3. awaits `project.shut_down()`, whatever happened before, and drops the
+   project.
+
+It assumes nothing about where a run's input comes from: a subclass
+implements the workflow, `run_workflow()` and, to stop without being
+cancelled, `stop_workflow()`, and sets `_debug` and `_graceful_timeout` before
+the run. {doc}`cli` is one such runner.
+
+SIGINT and SIGTERM stop the run, from `configure()` to the end of
+`shut_down()`, and each further one insists more:
+
+- the first calls `stop_workflow()`, and cancels the workflow if it is still
+  running after the graceful timeout (5 seconds by default); while
+  configuring or shutting down, which cannot be asked to stop, it cancels
+  them;
+- the second cancels the current stage at once;
+- the third kills the process with the signal, as if there were no runner,
+  for a stage that does not even give in to cancelling.
+
+A project whose configuring fails or is cancelled may be half set up, so it
+is shut down all the same, without running the workflow. Shutting down that
+is cancelled may leave resources behind, and the cancelling is logged.
+
+The exit code is the workflow's, 1 when a stage fails or is cancelled; a
+killed process reports the signal.

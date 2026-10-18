@@ -40,6 +40,7 @@ environments = ["sys_platform == 'linux'", "sys_platform == 'darwin'"]
 [dependency-groups]
 dev = [
     "black",
+    "coverage",
     "flake8",
     "flake8-class-attributes-order",
     "flake8-pyproject",
@@ -130,3 +131,13 @@ showcontent = true
 directory = "misc"
 name = "Misc"
 showcontent = false
+
+[tool.coverage.run]
+branch = true
+source = ["ingots"]
+
+[tool.coverage.report]
+fail_under = 99
+show_missing = true
+skip_covered = true
+exclude_also = ["if t.TYPE_CHECKING:", "raise NotImplementedError"]

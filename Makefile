@@ -29,7 +29,7 @@ DOC_PORT ?= 8000
 
 # The `ci` workflow runs exactly these targets, one per job.
 .PHONY: check
-check: lint test wheel-test doc cl-check  ## Every check: lint, test, wheel-test, doc, cl-check
+check: lint test coverage wheel-test doc cl-check  ## Every check: lint, test, coverage, wheel-test, doc, cl-check
 
 .PHONY: lint
 lint:  ## black --check, flake8, mypy --strict
@@ -40,6 +40,11 @@ lint:  ## black --check, flake8, mypy --strict
 .PHONY: test
 test:  ## unittest on the working tree
 	uv run python -m unittest discover -s tests -t .
+
+.PHONY: coverage
+coverage:  ## unittest on the working tree under coverage; fails below 99%
+	uv run coverage run -m unittest discover -s tests -t .
+	uv run coverage report
 
 # ADR 0003: the tests run against the built wheel, installed into a fresh
 # virtualenv, from a copy of tests/ outside the repository, so the package can
