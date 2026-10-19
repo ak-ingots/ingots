@@ -17,6 +17,7 @@ Ingots is being rewritten from scratch: nothing usable yet.
 
 - {doc}`concepts/index`: projects, units, entities and slots; the command
   line.
+- {doc}`defaults/index`: the standard units: the settings.
 - {doc}`reference/index`: the Python API.
 - {doc}`contributing`: the development workflow.
 - {doc}`changelog`.
@@ -26,6 +27,13 @@ Ingots is being rewritten from scratch: nothing usable yet.
 :caption: Concepts
 
 concepts/index
+```
+
+```{toctree}
+:hidden:
+:caption: Defaults
+
+defaults/index
 ```
 
 ```{toctree}
