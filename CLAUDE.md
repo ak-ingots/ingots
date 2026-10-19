@@ -33,17 +33,23 @@ Logs of a run: `INGOTS_TEST_LOG=info make test` (test cases derive from
 
 ## Commits and GitHub
 
-- Never commit, amend, push, tag or rewrite history on your own initiative:
-  show a summary and the proposed message, wait for an explicit approval of
-  that commit. One approval does not extend to the next.
+- Never commit, amend, push, open a pull request, tag or rewrite history on
+  your own initiative: show a summary and the proposed message, wait for an
+  explicit approval of that commit. One approval does not extend to the
+  next. Never merge a pull request: the user does (`gh pr merge` is denied).
 - The remote is `ak-ingots/ingots`. Inside the `ingots-libs` checkout, run gh
   and git network commands as `direnv exec /home/bee/work/ingots-libs <cmd>`
   (the token comes from its `.envrc`; never read it). Release tags are
   `vX.Y.Z`, the version is bumped with `uv version --bump`.
-- Linear history: no merge commits, `main` moves by `--ff-only`, small
-  development commits are squashed into one reviewable change each. For now
-  work goes to `main` directly (no branches, no PRs); run `make check` before
-  pushing, CI cannot check the news fragment on a direct push.
+- `main` and `release/X.Y` are protected by a ruleset: no direct push, force
+  push or deletion; pull requests only, squash-merged, with every CI job
+  green on a branch up to date with `main`. One change per branch and PR,
+  kept to one commit; the squash commit takes the PR title and description,
+  so write them as the commit message. The `Co-Authored-By` trailer goes in
+  the branch commit only: GitHub carries it to the end of the squash commit.
+- Before pushing a branch, rebase it onto the current `main` and run
+  `make check`. After the user merges, switch to `main`, pull and delete the
+  local branch.
 
 ## Rules
 
