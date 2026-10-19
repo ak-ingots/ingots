@@ -15,12 +15,13 @@ __all__ = (
     "StrConfig",
     "TimeConfig",
     "TupleConfig",
+    "check_configs",
     "get_config",
     "iter_configs",
 )
 
 from .base import BaseConfig
-from .entity import Configs, get_config, iter_configs
+from .entity import Configs, check_configs, get_config, iter_configs
 from .enums import EnumConfig, LogLevelConfig
 from .standard import (
     BoolConfig,
