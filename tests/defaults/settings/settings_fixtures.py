@@ -1,9 +1,12 @@
 """An addon with configs of its own, and an application joining two addons."""
 
+import argparse
 import enum
+from dataclasses import dataclass
 
-from ingots.defaults import Project
+from ingots.defaults import Project, ProjectCliArgs
 from ingots.defaults.settings import Settings
+from ingots.defaults.settings.loaders import BaseLoader, Overrides
 from ingots.defaults.settings.configs import (
     BoolConfig,
     Configs,
@@ -33,6 +36,7 @@ class HttpSettings(Settings):
 
 
 class HttpProject(Project):
+    env_configs_prefix = "TEST"
     settings = Slot(HttpSettings)
 
 
@@ -46,6 +50,7 @@ class DbSettings(Settings):
 
 
 class DbProject(Project):
+    env_configs_prefix = "TEST"
     settings = Slot(DbSettings)
 
 
@@ -61,12 +66,58 @@ class AppProject(HttpProject, DbProject):
     settings = Slot(AppSettings)
 
 
-class LoadedSettings(AppSettings):
-    """Loads values other than the defaults, as a source would."""
+class VaultLoader(BaseLoader):
+    """A source of another kind: a secrets store."""
 
-    async def load_values(self) -> dict[str, object]:
-        return {"IS_PRINT_CONFIGS": True, "HTTP_PORT": 9090, "DB_MODE": Mode.FAST}
+    async def load(self) -> list[Overrides]:
+        return [Overrides("the vault", {"HTTP_TOKEN": "from the vault"})]
 
 
-class LoadedProject(AppProject):
-    settings = Slot(LoadedSettings)
+class VaultSettings(AppSettings):
+    LOADERS = (*AppSettings.LOADERS, "vault_loader")
+    vault_loader = Slot(VaultLoader)
+
+
+class VaultProject(AppProject):
+    settings = Slot(VaultSettings)
+
+
+class StrictConfigs(AppConfigs):
+    IS_STRICT_CONFIGS = BoolConfig(True)
+
+
+class StrictSettings(AppSettings):
+    configs = Slot(StrictConfigs)
+
+
+class StrictProject(AppProject):
+    settings = Slot(StrictSettings)
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class VerboseCliArgs(ProjectCliArgs):
+    verbose: bool
+
+
+class VerboseProject(AppProject):
+    """Adds an option of its own to those of the defaults."""
+
+    cli_args: VerboseCliArgs
+
+    @classmethod
+    def cli_prepare_parser(cls, parser: argparse.ArgumentParser) -> None:
+        super().cli_prepare_parser(parser)
+        parser.add_argument("--verbose", dest="verbose", action="store_true")
+
+    @classmethod
+    def cli_build_args(cls, namespace: argparse.Namespace) -> VerboseCliArgs:
+        base = super().cli_build_args(namespace)
+        return VerboseCliArgs(
+            configs=base.configs,
+            configs_files=base.configs_files,
+            verbose=namespace.verbose,
+        )
+
+
+class NoPrefixProject(Project):
+    """Forgets to set the prefix of its environment variables."""

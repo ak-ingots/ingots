@@ -1,8 +1,9 @@
 """The configs: the flat namespace of the configs of a project."""
 
-__all__ = ("Configs", "get_config", "iter_configs")
+__all__ = ("Configs", "check_configs", "get_config", "iter_configs")
 
 import inspect
+import itertools
 import types
 import typing as t
 
@@ -22,13 +23,25 @@ class Configs(Entity):
     of the settings to it. A config reads its default until the settings
     apply the values, once, while the project is configured; from then on
     the configs are frozen.
+
+    ``IS_PRINT_CONFIGS`` prints the configs once applied; ``IS_STRICT_CONFIGS``
+    fails the configuration on a wrong override instead of ignoring it.
+
+    Joining the configs of addons checks the names when the class is
+    created: see :func:`check_configs`.
     """
 
     IS_PRINT_CONFIGS = BoolConfig(True)
+    IS_STRICT_CONFIGS = BoolConfig(False)
 
     # replaced, never changed: the instance gets its own when applied
     _configs_values: "Mapping[str, object]" = types.MappingProxyType({})
     _configs_applied = False
+
+    @classmethod
+    def __init_subclass__(cls, **kwargs: t.Any) -> None:
+        super().__init_subclass__(**kwargs)
+        check_configs(cls)
 
     def apply(self, values: "Mapping[str, object]") -> None:
         """
@@ -46,6 +59,35 @@ class Configs(Entity):
             get_config(cls, name).validate(value)
         self._configs_values = types.MappingProxyType(dict(values))
         self._configs_applied = True
+
+
+def check_configs(cls: type[Configs]) -> None:
+    """
+    A config name declared by two unrelated bases is a clash: two addons
+    chose one name for different configs. An override is not: a base that
+    redeclares a config of a common ancestor wins over it. The subclass
+    resolves a clash by declaring the config itself.
+    """
+    owners: dict[str, dict[type, None]] = {}  # ordered sets
+
+    for base in cls.__bases__:
+        seen: set[str] = set()
+        for klass in base.__mro__:  # the first owner of a name is the base's
+            for name, value in vars(klass).items():
+                if name in seen:
+                    continue
+                seen.add(name)
+                if isinstance(value, BaseConfig) and name not in vars(cls):
+                    owners.setdefault(name, {})[klass] = None
+
+    for name, classes in owners.items():
+        for first, second in itertools.combinations(classes, 2):
+            if not (issubclass(first, second) or issubclass(second, first)):
+                raise TypeError(
+                    f"{cls.__qualname__}: {first.__qualname__}.{name} and "
+                    f"{second.__qualname__}.{name} are different configs: "
+                    f"rename one, or declare {cls.__qualname__}.{name}"
+                )
 
 
 def get_config(cls: type[Configs], name: str) -> BaseConfig[t.Any]:

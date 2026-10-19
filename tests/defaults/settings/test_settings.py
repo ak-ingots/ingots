@@ -1,7 +1,13 @@
 import contextlib
 import io
 
-from ingots.defaults.settings.configs import Configs, get_config, iter_configs
+from ingots.defaults.settings.configs import (
+    BoolConfig,
+    Configs,
+    IntConfig,
+    get_config,
+    iter_configs,
+)
 from ingots.puer.cli import CommandRunner
 
 from tests import TestCase
@@ -9,8 +15,8 @@ from tests import TestCase
 from .settings_fixtures import (
     AppConfigs,
     AppProject,
+    DbConfigs,
     HttpConfigs,
-    LoadedProject,
     Mode,
 )
 
@@ -72,10 +78,11 @@ class ConfigsTestCase(TestCase):
                 "HTTP_PORT",
                 "HTTP_TOKEN",
                 "IS_PRINT_CONFIGS",
+                "IS_STRICT_CONFIGS",
             ],
         )
-        self.assertIs(configs[-1], HttpConfigs.IS_PRINT_CONFIGS)
-        self.assertIsNot(configs[-1], Configs.IS_PRINT_CONFIGS)
+        self.assertIs(configs[-2], HttpConfigs.IS_PRINT_CONFIGS)
+        self.assertIsNot(configs[-2], Configs.IS_PRINT_CONFIGS)
 
 
 class SettingsTestCase(TestCase):
@@ -85,9 +92,13 @@ class SettingsTestCase(TestCase):
             self.assertEqual(CommandRunner(project_cls, argv).run(), 0)
         return out.getvalue()
 
-    def test_configuring_applies_the_loaded_values_and_prints_them(self) -> None:
+    def test_configuring_applies_the_overrides_and_prints_them(self) -> None:
         self.assertEqual(
-            self.run_project(LoadedProject, "settings", "list"),
+            self.run_project(
+                AppProject,
+                *("--config", "IS_PRINT_CONFIGS=on", "--config", "HTTP_PORT=9090"),
+                *("--config", "DB_MODE=FAST", "settings", "list"),
+            ),
             PRINTED * 2,  # on configuring, then by the command
         )
 
@@ -108,5 +119,56 @@ HTTP_BIND = ('localhost', 8080)
 HTTP_PORT = 9090
 HTTP_TOKEN = ***
 IS_PRINT_CONFIGS = True
+IS_STRICT_CONFIGS = False
 ------------
 """
+
+
+class CheckConfigsTestCase(TestCase):
+    def test_unrelated_configs_of_one_name_clash(self) -> None:
+        class OneConfigs(Configs):
+            TIMEOUT = IntConfig(1)
+
+        class OtherConfigs(Configs):
+            TIMEOUT = IntConfig(2)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            r"BothConfigs: \S*OneConfigs.TIMEOUT and \S*OtherConfigs.TIMEOUT are "
+            r"different configs: rename one, or declare \S*BothConfigs.TIMEOUT$",
+        ):
+
+            class BothConfigs(OneConfigs, OtherConfigs):
+                pass
+
+        class ResolvedConfigs(OneConfigs, OtherConfigs):
+            TIMEOUT = IntConfig(3)
+
+        class LaterConfigs(ResolvedConfigs, DbConfigs):
+            pass
+
+        self.assertEqual(get_config(LaterConfigs, "TIMEOUT").default, 3)
+
+    def test_an_override_of_a_common_ancestor_does_not_clash(self) -> None:
+        class QuietConfigs(Configs):
+            IS_PRINT_CONFIGS = BoolConfig(False)
+
+        class JoinedConfigs(QuietConfigs, DbConfigs):
+            pass
+
+        self.assertIs(
+            get_config(JoinedConfigs, "IS_PRINT_CONFIGS"),
+            QuietConfigs.IS_PRINT_CONFIGS,
+        )
+
+    def test_two_overrides_of_one_config_clash(self) -> None:
+        class QuietConfigs(Configs):
+            IS_PRINT_CONFIGS = BoolConfig(False)
+
+        class LoudConfigs(Configs):
+            IS_PRINT_CONFIGS = BoolConfig(True)
+
+        with self.assertRaisesRegex(TypeError, "QuietConfigs.IS_PRINT_CONFIGS"):
+
+            class JoinedConfigs(QuietConfigs, LoudConfigs):
+                pass
