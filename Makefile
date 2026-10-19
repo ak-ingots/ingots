@@ -35,7 +35,8 @@ check: lint test coverage wheel-test doc cl-check  ## Every check: lint, test, c
 lint:  ## black --check, flake8, mypy --strict
 	uv run black --check --diff $(SRC)
 	uv run flake8 $(SRC)
-	uv run mypy $(SRC)
+	# docs/conf.py extends Sphinx: mypy needs the doc group to see it
+	uv run --group doc mypy $(SRC)
 
 .PHONY: test
 test:  ## unittest on the working tree
