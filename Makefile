@@ -19,9 +19,10 @@ PYTHONS ?= 3.14 3.15
 # What `cl-check` compares the branch with.
 AGAINST ?= origin/main
 
-# Where `doc-serve` listens. The default is this machine only; DOC_HOST=0.0.0.0
-# makes the docs reachable from the network (e.g. a headless dev server).
-DOC_HOST ?= 127.0.0.1
+# Where `doc-serve` listens. The default is every interface, so the docs built
+# on a headless dev server open in a browser elsewhere; DOC_HOST=127.0.0.1
+# keeps them to this machine.
+DOC_HOST ?= 0.0.0.0
 DOC_PORT ?= 8000
 
 
@@ -31,11 +32,11 @@ DOC_PORT ?= 8000
 .PHONY: check
 check: lint test coverage wheel-test doc cl-check  ## Every check: lint, test, coverage, wheel-test, doc, cl-check
 
+# docs/conf.py extends Sphinx: mypy needs the doc group to see it.
 .PHONY: lint
 lint:  ## black --check, flake8, mypy --strict
 	uv run black --check --diff $(SRC)
 	uv run flake8 $(SRC)
-	# docs/conf.py extends Sphinx: mypy needs the doc group to see it
 	uv run --group doc mypy $(SRC)
 
 .PHONY: test
@@ -84,7 +85,7 @@ doc: apidoc  ## Build the HTML documentation into docs/build/, warnings are erro
 	uv run --group doc sphinx-build -b html -W --keep-going docs $(DOC_OUT)
 
 .PHONY: doc-serve
-doc-serve: doc  ## Build the documentation and serve it over HTTP [DOC_HOST=127.0.0.1 DOC_PORT=8000]
+doc-serve: doc  ## Build the documentation and serve it over HTTP [DOC_HOST=0.0.0.0 DOC_PORT=8000]
 	@echo "Serving $(DOC_OUT) on http://$(DOC_HOST):$(DOC_PORT)/ (Ctrl+C to stop)"
 	uv run python -m http.server $(DOC_PORT) --bind $(DOC_HOST) --directory $(DOC_OUT)
 
