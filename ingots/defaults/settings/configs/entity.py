@@ -4,13 +4,21 @@ __all__ = ("Configs", "check_configs", "get_config", "iter_configs")
 
 import inspect
 import itertools
+import logging
 import types
 import typing as t
 
+from ingots.defaults.logging.startup import (
+    INGOTS_LOGGING_MARKER,
+    STARTUP_LOGGING_FORMAT,
+)
 from ingots.puer.entity import Entity
 
 from .base import BaseConfig
-from .standard import BoolConfig
+from .enums import LogLevelConfig
+from .standard import BoolConfig, StrConfig
+
+_LOGGING_FORMAT = f"%(asctime)s ▶ {STARTUP_LOGGING_FORMAT} ▶ %(taskName)s ▶ %(cvars)s"
 
 if t.TYPE_CHECKING:
     from collections.abc import Iterator, Mapping
@@ -25,7 +33,11 @@ class Configs(Entity):
     the configs are frozen.
 
     ``IS_PRINT_CONFIGS`` prints the configs once applied; ``IS_STRICT_CONFIGS``
-    fails the configuration on a wrong override instead of ignoring it.
+    fails the configuration on a wrong override instead of ignoring it. The
+    ``LOGGING_*`` configs are those of the logging unit: the ``default``
+    handler serves the root logger, the ``ingots`` handler the ``ingots``
+    logger, which does not propagate; both add the log context,
+    ``%(cvars)s`` in the formats.
 
     Joining the configs of addons checks the names when the class is
     created: see :func:`check_configs`.
@@ -33,6 +45,13 @@ class Configs(Entity):
 
     IS_PRINT_CONFIGS = BoolConfig(True)
     IS_STRICT_CONFIGS = BoolConfig(False)
+
+    LOGGING_DISABLE_EXISTING_LOGGERS = BoolConfig(False)
+    LOGGING_DEFAULT_FORMAT = StrConfig(_LOGGING_FORMAT)
+    LOGGING_ENABLE_ROOT_LOGGER = BoolConfig(False)
+    LOGGING_ROOT_LOGGER_LEVEL = LogLevelConfig(logging.INFO)
+    LOGGING_INGOTS_LEVEL = LogLevelConfig(logging.INFO)
+    LOGGING_INGOTS_FORMAT = StrConfig(f"{INGOTS_LOGGING_MARKER} {_LOGGING_FORMAT}")
 
     # replaced, never changed: the instance gets its own when applied
     _configs_values: "Mapping[str, object]" = types.MappingProxyType({})

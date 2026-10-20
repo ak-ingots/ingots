@@ -7,5 +7,7 @@ command-line project.
 ```{toctree}
 :maxdepth: 2
 
+addon
 settings
+logging
 ```

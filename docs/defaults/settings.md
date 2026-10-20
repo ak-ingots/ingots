@@ -8,8 +8,10 @@ and what serves them.
 A config is a typed descriptor with a default. All the configs of a project
 share one flat namespace, a
 {py:class}`~ingots.defaults.settings.configs.entity.Configs` entity, so an addon
-prefixes its configs with its name. An addon adds its configs with three
-short classes, one per level:
+prefixes its configs with its name. The base class holds the configs of the
+defaults themselves: those of the settings and the `LOGGING_*` of
+{doc}`logging`. An addon adds its configs with three short classes, one per
+level:
 
 ```python
 from ingots.defaults import Project
