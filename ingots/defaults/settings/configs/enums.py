@@ -35,7 +35,13 @@ class EnumConfig[EnumType: enum.Enum](BaseConfig[EnumType]):
 
 
 class LogLevelConfig(IntConfig):
-    """A logging level. Converts a level name in any case: ``info``."""
+    """
+    A logging level. Converts a level name in any case: ``info``; prints the
+    name of a standard level.
+    """
+
+    def format_value(self, value: int) -> str:
+        return logging.getLevelName(value)
 
     def _parse(self, data: object) -> int:
         if isinstance(data, str) and not data.lstrip("-").isdigit():

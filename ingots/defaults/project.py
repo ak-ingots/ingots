@@ -10,6 +10,7 @@ from pathlib import Path
 from ingots.puer import Slot
 from ingots.puer.cli import CliProject
 
+from .logging import Logging
 from .settings import Settings
 
 
@@ -28,7 +29,8 @@ class ProjectCliArgs:
 class Project(CliProject):
     """
     The project an application starts from: a command-line project with the
-    standard units. Configuring it configures the units in their order.
+    standard units. Configuring it configures the units in their order:
+    the settings, then the logging from the configs.
 
     An application sets :attr:`env_configs_prefix`: ``"APP"`` reads
     ``APP_HTTP_PORT`` for the config ``HTTP_PORT``.
@@ -38,6 +40,7 @@ class Project(CliProject):
 
     cli_args: ProjectCliArgs
     settings = Slot(Settings)
+    logging = Slot(Logging)
 
     @staticmethod
     def _cli_check_config(option: str) -> tuple[str, str]:
@@ -84,3 +87,4 @@ class Project(CliProject):
     async def configure(self) -> None:
         await super().configure()
         await self.settings.configure()
+        await self.logging.configure()

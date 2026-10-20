@@ -79,10 +79,16 @@ class ConfigsTestCase(TestCase):
                 "HTTP_TOKEN",
                 "IS_PRINT_CONFIGS",
                 "IS_STRICT_CONFIGS",
+                "LOGGING_DEFAULT_FORMAT",
+                "LOGGING_DISABLE_EXISTING_LOGGERS",
+                "LOGGING_ENABLE_ROOT_LOGGER",
+                "LOGGING_INGOTS_FORMAT",
+                "LOGGING_INGOTS_LEVEL",
+                "LOGGING_ROOT_LOGGER_LEVEL",
             ],
         )
-        self.assertIs(configs[-2], HttpConfigs.IS_PRINT_CONFIGS)
-        self.assertIsNot(configs[-2], Configs.IS_PRINT_CONFIGS)
+        self.assertIs(configs[5], HttpConfigs.IS_PRINT_CONFIGS)
+        self.assertIsNot(configs[5], Configs.IS_PRINT_CONFIGS)
 
 
 class SettingsTestCase(TestCase):
@@ -111,7 +117,7 @@ class SettingsTestCase(TestCase):
         )
 
 
-PRINTED = """\
+PRINTED = f"""\
 Configs:
 DB_MODE = Mode.FAST
 DB_NAME = app
@@ -120,6 +126,12 @@ HTTP_PORT = 9090
 HTTP_TOKEN = ***
 IS_PRINT_CONFIGS = True
 IS_STRICT_CONFIGS = False
+LOGGING_DEFAULT_FORMAT = {Configs.LOGGING_DEFAULT_FORMAT.default}
+LOGGING_DISABLE_EXISTING_LOGGERS = False
+LOGGING_ENABLE_ROOT_LOGGER = False
+LOGGING_INGOTS_FORMAT = {Configs.LOGGING_INGOTS_FORMAT.default}
+LOGGING_INGOTS_LEVEL = INFO
+LOGGING_ROOT_LOGGER_LEVEL = INFO
 ------------
 """
 
