@@ -8,7 +8,7 @@ needs.
 make check           # everything CI runs: lint, test, wheel-test, doc, cl-check
 make format          # black
 make doc             # this documentation into docs/build/ (runs `make apidoc` first)
-make doc-serve       # build and serve it on http://127.0.0.1:8000/ [DOC_HOST=0.0.0.0 DOC_PORT=...]
+make doc-serve       # build and serve it on port 8000 of every interface [DOC_HOST=127.0.0.1 DOC_PORT=...]
 make all             # the sdist and the wheel into dist/
 ```
 
