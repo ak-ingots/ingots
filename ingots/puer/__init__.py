@@ -7,6 +7,7 @@ declared as typed slots and customized by subclassing (ADR 0004).
 
 __all__ = (
     "BaseRunner",
+    "Component",
     "Entity",
     "Project",
     "ProjectState",
@@ -15,6 +16,7 @@ __all__ = (
     "Unit",
 )
 
+from .components import Component
 from .constants import ProjectState
 from .entity import Entity
 from .project import Project

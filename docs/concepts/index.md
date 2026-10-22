@@ -7,4 +7,5 @@ How an Ingots application is put together, and why.
 
 puer
 cli
+components
 ```

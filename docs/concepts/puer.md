@@ -74,6 +74,8 @@ entity, typed by that kind, and create nothing on the way.
   entity at a path, created with the units on the way; a path without a
   slot of that kind raises `LookupError` and creates nothing.
 - `project.slots_walk_entities()` gives the entities created so far.
+- `project.slots_find_path(entity)` gives the path of an entity created
+  under it.
 
 ## Customization
 
@@ -156,15 +158,15 @@ cancelled, `_stop_workflow()`, and sets `_debug` and `_graceful_timeout` in
 The framework keeps the flow of a project in its own hands and leaves the
 details to its subclasses:
 
-- **Final methods are called, not overridden**: `runner.run()`, the
-  `slots_` methods. mypy rejects an override
+- **Final methods are called, not overridden**: `runner.run()`,
+  `await component`, the `slots_` methods. mypy rejects an override
   (`@typing.final`), so a forgotten `super()` cannot break them. The
   shutdown of a project is final too, and only the runner runs it.
 - **Hooks are overridden, not called**: their names start with an
   underscore, and the framework calls them at their moment.
   `Project._configure()`, `Project._shut_down()`,
-  `BaseRunner._run_workflow()`, `BaseCommand._run()` do the work of
-  their class. They are empty
+  `BaseRunner._run_workflow()`, `BaseCommand._run()`,
+  `Component._configure()` do the work of their class. They are empty
   or abstract in the framework: an override calls `super()` only to keep
   what its own bases do, an addon's project for example.
 - An override says so with `@typing.override`. With mypy's

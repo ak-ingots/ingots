@@ -10,4 +10,5 @@ command-line project.
 addon
 settings
 logging
+components
 ```
