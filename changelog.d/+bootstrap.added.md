@@ -1,1 +1,0 @@
-Started the rewrite of Ingots from scratch: an empty `ingots` package with the development automation - `make check` (lint, tests on the working tree and on the built wheel for every supported Python, documentation build, changelog check), towncrier news fragments, the Sphinx documentation for Read the Docs and the `ci` workflow running the same targets.
