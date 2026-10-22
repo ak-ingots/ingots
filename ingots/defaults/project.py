@@ -34,11 +34,13 @@ class Project(CliProject):
     the settings, then the logging from the configs; shutting it down shuts
     down the components it configured.
 
-    An application sets :attr:`env_configs_prefix`: ``"APP"`` reads
-    ``APP_HTTP_PORT`` for the config ``HTTP_PORT``.
+    The environment variables of the configs take :attr:`env_configs_prefix`:
+    ``"INGOT"`` here, which an addon run on its own keeps, so ``INGOT_HTTP_PORT``
+    sets the config ``HTTP_PORT``. An application sets its own: ``"APP"``
+    reads ``APP_HTTP_PORT``.
     """
 
-    env_configs_prefix: t.ClassVar[str]
+    env_configs_prefix: t.ClassVar[str] = "INGOT"
 
     cli_args: ProjectCliArgs
     settings = Slot(Settings)

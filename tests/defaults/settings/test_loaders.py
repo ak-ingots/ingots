@@ -18,7 +18,7 @@ from tests import TestCase
 from .settings_fixtures import (
     AppProject,
     Mode,
-    NoPrefixProject,
+    DefaultPrefixProject,
     StrictProject,
     VaultProject,
     VerboseCliArgs,
@@ -61,12 +61,13 @@ class EnvLoaderTestCase(LoaderTestCase):
             ],
         )
 
-    def test_a_project_without_a_prefix_fails(self) -> None:
-        project = NoPrefixProject()
-        with self.assertRaisesRegex(
-            RuntimeError, r"^NoPrefixProject.env_configs_prefix is not set$"
-        ):
-            asyncio.run(project.settings.env_loader.load())
+    def test_the_prefix_of_the_defaults_is_ingot(self) -> None:
+        os.environ.update({"INGOT_HTTP_PORT": "9090", "TEST_HTTP_PORT": "1"})
+        project = DefaultPrefixProject()
+        self.assertEqual(
+            asyncio.run(project.settings.env_loader.load()),
+            [Overrides("the environment (INGOT_*)", {"HTTP_PORT": "9090"})],
+        )
 
 
 class CliLoaderTestCase(LoaderTestCase):

@@ -76,7 +76,6 @@ class Http(CliUnit):
 
 
 class HttpProject(Project):
-    env_configs_prefix = "INGOT"
     settings = Slot(HttpSettings)
     logging = Slot(HttpLogging)
     http = Slot(Http)
@@ -102,9 +101,9 @@ Level by level:
 - **The domain.** `Http` is a unit of the addon's own, with its commands;
   every entity reaches the configs through the project.
 - **The project.** `HttpProject` takes the three slots. It is what an
-  application inherits from, and runs the addon on its own: the
-  environment prefix `INGOT` and `main()` serve that run, an application
-  sets its own (`APP_HTTP_PORT`).
+  application inherits from, and runs the addon on its own: `main()` and
+  the environment prefix of the defaults, `INGOT`, serve that run; an
+  application sets its own (`APP_HTTP_PORT`).
 - **The entry point.** `configure_startup_logging()` logs from the very
   start, before the settings are read; pass `logging.DEBUG` to look into
   it.
