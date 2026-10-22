@@ -5,6 +5,10 @@ are the previous implementation.
 
 <!-- towncrier release notes start -->
 
+## [0.30.1] - 2026-10-22
+### Fixed
+- A project of the defaults reads its environment variables with the prefix `INGOT` unless it sets its own `env_configs_prefix`, instead of failing: an addon run on its own no longer repeats the prefix of the ecosystem.
+
 ## [0.30.0] - 2026-10-22
 ### Added
 - Added `ingots.defaults` with its `Project` and the first standard unit, `settings`: typed, read-only configs in one flat namespace per project (`Configs`), extended by addons through slots, with configs for the built-in scalar types, dates and times, enums, logging levels and tuples. The values are applied once while the project is configured and printed when `IS_PRINT_CONFIGS` is on; `settings list` prints them on demand.
