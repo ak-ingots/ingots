@@ -2,8 +2,9 @@ import typing as t
 import unittest
 from collections.abc import Iterator
 
-from ingots.puer import Entity, Project, Slot, Unit
+from ingots.puer import Component, Entity, Project, Slot, Unit
 
+from .components_fixtures import ComponentsProject
 from .fixtures import (
     AppCommon,
     AppEntity,
@@ -43,9 +44,9 @@ class SlotOnTheClassTestCase(unittest.TestCase):
 class SlotOnTheInstanceTestCase(unittest.TestCase):
     def test_an_entity_is_created_on_first_access_only(self) -> None:
         p = AppProject()
-        self.assertEqual(vars(p), {})
+        self.assertEqual(_get_created(p), {})
         unit = p.pkg1_unit
-        self.assertEqual(vars(p), {"_slot_pkg1_unit": unit})
+        self.assertEqual(_get_created(p), {"_slot_pkg1_unit": unit})
 
     def test_an_entity_is_created_once_per_owner(self) -> None:
         p = AppProject()
@@ -163,12 +164,36 @@ class SlotsOwnerTestCase(unittest.TestCase):
             [("pkg1_unit.sub_unit.entity", AppEntity)],
         )
 
+    def test_a_component_kind_gives_the_slots_of_components(self) -> None:
+        slots = ComponentsProject.slots_walk(Component)
+        t.assert_type(slots, Iterator[tuple[str, Slot[Component]]])
+        self.assertEqual(
+            [(path, slot.cls.__qualname__) for path, slot in slots],
+            [
+                ("storage.store", "Store"),
+                ("storage.cache", "CachedStore"),
+                ("server", "Server"),
+            ],
+        )
+        self.assertEqual(
+            [name for name, _ in ComponentsProject.slots_iter(Component)],
+            ["server"],
+        )
+
     def test_an_entity_is_found_by_its_path(self) -> None:
         p = AppProject()
         entity = p.slots_find_entity("pkg1_unit.sub_unit.entity", Pkg1Entity)
         t.assert_type(entity, Pkg1Entity)
         self.assertIs(entity, p.pkg1_unit.sub_unit.entity)
         self.assertIs(p.slots_find_entity("common"), p.common)
+
+    def test_the_path_of_an_entity_is_found(self) -> None:
+        p = AppProject()
+        entity = p.pkg1_unit.sub_unit.entity
+        self.assertEqual(p.slots_find_path(entity), "pkg1_unit.sub_unit.entity")
+        self.assertEqual(p.slots_find_path(p.pkg1_unit), "pkg1_unit")
+        with self.assertRaisesRegex(LookupError, "^no slot of .* holds "):
+            p.slots_find_path(AppEntity(p))
 
     def test_a_wrong_path_creates_nothing(self) -> None:
         p = AppProject()
@@ -184,7 +209,7 @@ class SlotsOwnerTestCase(unittest.TestCase):
                 ),
             ):
                 p.slots_find_entity(path, kind)
-        self.assertEqual(vars(p), {})
+        self.assertEqual(_get_created(p), {})
 
     def test_the_created_entities_are_walked(self) -> None:
         p = AppProject()
@@ -220,3 +245,8 @@ class SlotsOwnerTestCase(unittest.TestCase):
 
         with self.assertRaisesRegex(TypeError, "Wrong.common = .* does not extend"):
             list(Wrong.slots_iter())
+
+
+def _get_created(owner: object) -> dict[str, object]:
+    # the entities kept by the slots, none of the owner's own attributes
+    return {key: value for key, value in vars(owner).items() if key[:6] == "_slot_"}

@@ -4,14 +4,16 @@ __all__ = ("Project",)
 
 import typing as t
 
+from .components import ComponentsOwner
 from .constants import ProjectState
 from .slots import SlotsOwner
 
 
-class Project(SlotsOwner):
+class Project(SlotsOwner, ComponentsOwner):
     """
     Owns every unit and entity created through its slots. The runner shuts
-    it down: :meth:`_shut_down` releases what it holds.
+    it down: what :meth:`_shut_down` releases, then its configured
+    components; from then on no component is configured.
     """
 
     _project_state = ProjectState.ACTIVE
@@ -26,15 +28,19 @@ class Project(SlotsOwner):
     async def _do_shut_down(self) -> None:
         """
         Releases what the project holds once the runner is done, whatever the
-        workflow's outcome: what :meth:`_shut_down` releases. Shutting down
-        twice does nothing. Internal: the runner calls it.
+        workflow's outcome: what :meth:`_shut_down` releases, then the
+        configured components, in their shutdown order. Shutting down twice
+        does nothing. Internal: the runner calls it.
         """
         if self._project_state is not ProjectState.ACTIVE:
             return
 
         self._project_state = ProjectState.SHUTTING_DOWN
         try:
-            await self._shut_down()
+            try:
+                await self._shut_down()
+            finally:
+                await self._components_get_lifecycle().shut_down()
         finally:
             self._project_state = ProjectState.SHUT_DOWN
 
@@ -46,8 +52,9 @@ class Project(SlotsOwner):
 
     async def _shut_down(self) -> None:
         """
-        Releases what the project holds. Does nothing here: an override needs
-        ``super()`` only to keep what its bases release.
+        Releases what the project holds besides its components, before they
+        shut down. Does nothing here: an override needs ``super()`` only to
+        keep what its bases release; the components shut down either way.
         """
 
     @t.override

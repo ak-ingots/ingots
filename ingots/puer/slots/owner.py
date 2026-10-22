@@ -3,6 +3,7 @@
 __all__ = ("SlotsOwner",)
 
 import abc
+import contextlib
 import inspect
 import typing as t
 
@@ -130,6 +131,23 @@ class SlotsOwner:
                     yield entity
                 if isinstance(entity, SlotsOwner):
                     yield from entity.slots_walk_entities(kind)
+
+    @t.final
+    def slots_find_path(self, entity: Entity) -> str:
+        """
+        The dotted path of an entity created under the owner, as
+        :meth:`slots_find_entity` takes it.
+
+        :raises LookupError: the entity is not under the owner.
+        """
+        for name, slot in _get_index(type(self)).items():
+            for child in slot._iter_entities(self):
+                if child is entity:
+                    return name
+                if isinstance(child, SlotsOwner):
+                    with contextlib.suppress(LookupError):
+                        return f"{name}.{child.slots_find_path(entity)}"
+        raise LookupError(f"no slot of {self!r} holds {entity!r}")
 
     @abc.abstractmethod
     def _slots_get_project(self) -> "Project":

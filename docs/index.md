@@ -16,9 +16,9 @@ Ingots is being rewritten from scratch: nothing usable yet.
 ## Where to go next
 
 - {doc}`concepts/index`: projects, units, entities and slots; the command
-  line.
-- {doc}`defaults/index`: the standard units: the settings and the
-  logging.
+  line; the components.
+- {doc}`defaults/index`: the standard units: the settings, the logging and
+  the components.
 - {doc}`reference/index`: the Python API.
 - {doc}`contributing`: the development workflow.
 - {doc}`changelog`.
