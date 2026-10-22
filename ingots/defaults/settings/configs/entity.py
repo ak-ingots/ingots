@@ -57,6 +57,7 @@ class Configs(Entity):
     _configs_values: "Mapping[str, object]" = types.MappingProxyType({})
     _configs_applied = False
 
+    @t.override
     @classmethod
     def __init_subclass__(cls, **kwargs: t.Any) -> None:
         super().__init_subclass__(**kwargs)

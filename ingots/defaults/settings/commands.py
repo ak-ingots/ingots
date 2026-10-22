@@ -16,5 +16,6 @@ class ListConfigsCommand(BaseCommand):
     cli_description = "Prints the configs of the project."
     project: "Project"
 
-    async def run(self) -> None:
+    @t.override
+    async def _run(self) -> None:
         self.project.settings.print_configs()

@@ -7,6 +7,7 @@ configuring and shutting down.
 import asyncio
 import os
 import signal
+import typing as t
 import weakref
 
 from ingots.puer import BaseRunner, Project
@@ -17,29 +18,34 @@ PROJECTS: list[weakref.ref["RecordingProject"]] = []
 
 
 class RecordingProject(Project):
-    async def configure(self) -> None:
+    @t.override
+    async def _configure(self) -> None:
         PROJECTS.append(weakref.ref(self))
         EVENTS.append("configure")
 
-    async def shut_down(self) -> None:
+    @t.override
+    async def _shut_down(self) -> None:
         EVENTS.append("shut down")
 
 
 class HangingProject(RecordingProject):
     """Hangs while configuring and shutting down, until a signal cancels it."""
 
-    async def configure(self) -> None:
-        await super().configure()
+    @t.override
+    async def _configure(self) -> None:
+        await super()._configure()
         await hang_until_cancelled("configure")
 
-    async def shut_down(self) -> None:
-        await super().shut_down()
+    @t.override
+    async def _shut_down(self) -> None:
+        await super()._shut_down()
         await hang_until_cancelled("shut down")
 
 
 class FailingShutDownProject(RecordingProject):
-    async def shut_down(self) -> None:
-        await super().shut_down()
+    @t.override
+    async def _shut_down(self) -> None:
+        await super()._shut_down()
         raise RuntimeError("boom")
 
 
@@ -51,7 +57,8 @@ class RecordingRunner(BaseRunner):
     def __init__(self, project_cls: type[Project] = RecordingProject) -> None:
         super().__init__(project_cls)
 
-    async def run_workflow(self) -> int:
+    @t.override
+    async def _run_workflow(self) -> int:
         debug = asyncio.get_running_loop().get_debug()
         EVENTS.append(f"work, debug={debug}")
         return self.code
@@ -68,7 +75,8 @@ class ExitingRunner(RecordingRunner):
 
 
 class FailingRunner(RecordingRunner):
-    async def run_workflow(self) -> int:
+    @t.override
+    async def _run_workflow(self) -> int:
         raise RuntimeError("boom")
 
 
@@ -79,21 +87,23 @@ class ServingRunner(RecordingRunner):
         super().__init__()
         self._stopped = asyncio.Event()
 
-    async def run_workflow(self) -> int:
+    @t.override
+    async def _run_workflow(self) -> int:
         EVENTS.append("serving")
         asyncio.get_running_loop().create_task(send_signals(signal.SIGINT))
         await self._stopped.wait()
         EVENTS.append("served")
         return 0
 
-    async def stop_workflow(self) -> None:
+    @t.override
+    async def _stop_workflow(self) -> None:
         EVENTS.append("stop")
         self._stopped.set()
 
 
 class StubbornRunner(RecordingRunner):
     """
-    Ignores stopping, keeping the default :meth:`stop_workflow`: the runner
+    Ignores stopping, keeping the default :meth:`_stop_workflow`: the runner
     cancels it once the graceful timeout is over.
     """
 
@@ -103,7 +113,8 @@ class StubbornRunner(RecordingRunner):
         super().__init__()
         self._graceful_timeout = 0.05
 
-    async def run_workflow(self) -> int:
+    @t.override
+    async def _run_workflow(self) -> int:
         asyncio.get_running_loop().create_task(
             send_signals(signal.SIGTERM, self.signals)
         )
@@ -118,7 +129,8 @@ class StubbornRunner(RecordingRunner):
 class BrokenStopRunner(StubbornRunner):
     """Fails to stop: the runner still cancels it after the graceful timeout."""
 
-    async def stop_workflow(self) -> None:
+    @t.override
+    async def _stop_workflow(self) -> None:
         raise RuntimeError("boom")
 
 
@@ -137,9 +149,10 @@ class UnkillableRunner(ObstinateRunner):
 
     signals = 3
 
-    async def run_workflow(self) -> int:
+    @t.override
+    async def _run_workflow(self) -> int:
         try:
-            return await super().run_workflow()
+            return await super()._run_workflow()
         except asyncio.CancelledError:
             await asyncio.sleep(3600)
             return 0

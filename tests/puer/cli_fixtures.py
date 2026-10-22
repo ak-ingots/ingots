@@ -8,6 +8,7 @@ import argparse
 import asyncio
 import os
 import signal
+import typing as t
 import weakref
 from dataclasses import dataclass
 
@@ -29,15 +30,18 @@ class Greet(BaseCommand):
     cli_args: GreetArgs
     project: "ShopProject"
 
+    @t.override
     @classmethod
-    def cli_prepare_parser(cls, parser: argparse.ArgumentParser) -> None:
+    def _cli_prepare_parser(cls, parser: argparse.ArgumentParser) -> None:
         parser.add_argument("--name", dest="greet_name", default="world")
 
+    @t.override
     @classmethod
-    def cli_build_args(cls, namespace: argparse.Namespace) -> GreetArgs:
+    def _cli_build_args(cls, namespace: argparse.Namespace) -> GreetArgs:
         return GreetArgs(namespace.greet_name)
 
-    async def run(self) -> None:
+    @t.override
+    async def _run(self) -> None:
         created = sorted(k for k in vars(self.project) if k.startswith("_slot_"))
         EVENTS.append(f"hello {self.cli_args.name}; created: {', '.join(created)}")
 
@@ -52,12 +56,14 @@ class Greetings(CliUnit):
     cli_args: GreetingsArgs
     greet = Slot(Greet)
 
+    @t.override
     @classmethod
-    def cli_prepare_parser(cls, parser: argparse.ArgumentParser) -> None:
+    def _cli_prepare_parser(cls, parser: argparse.ArgumentParser) -> None:
         parser.add_argument("--loud", dest="greetings_loud", action="store_true")
 
+    @t.override
     @classmethod
-    def cli_build_args(cls, namespace: argparse.Namespace) -> GreetingsArgs:
+    def _cli_build_args(cls, namespace: argparse.Namespace) -> GreetingsArgs:
         return GreetingsArgs(namespace.greetings_loud)
 
 
@@ -66,14 +72,16 @@ class Serve(BaseCommand):
 
     cli_description = "Serves forever."
 
-    async def run(self) -> None:
+    @t.override
+    async def _run(self) -> None:
         self._stopped = asyncio.Event()
         EVENTS.append("serving")
         asyncio.get_running_loop().call_soon(os.kill, os.getpid(), signal.SIGINT)
         await self._stopped.wait()
         EVENTS.append("served")
 
-    def stop(self) -> None:
+    @t.override
+    def _stop(self) -> None:
         EVENTS.append("stop")
         self._stopped.set()
 
@@ -81,7 +89,8 @@ class Serve(BaseCommand):
 class Stubborn(BaseCommand):
     """Ignores stopping: the runner has to cancel it."""
 
-    async def run(self) -> None:
+    @t.override
+    async def _run(self) -> None:
         asyncio.get_running_loop().call_soon(os.kill, os.getpid(), signal.SIGTERM)
         try:
             await asyncio.sleep(3600)
@@ -96,7 +105,8 @@ class Server(CliUnit):
 
 
 class Fail(BaseCommand):
-    async def run(self) -> None:
+    @t.override
+    async def _run(self) -> None:
         raise RuntimeError("boom")
 
 
@@ -118,11 +128,13 @@ class ShopProject(CliProject):
     hidden = Slot(Hidden)
     empty = Slot(Empty)
 
-    async def configure(self) -> None:
+    @t.override
+    async def _configure(self) -> None:
         PROJECTS.append(weakref.ref(self))
         EVENTS.append("configure")
 
-    async def shut_down(self) -> None:
+    @t.override
+    async def _shut_down(self) -> None:
         EVENTS.append("shut down")
 
 

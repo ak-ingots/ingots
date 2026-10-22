@@ -63,6 +63,18 @@ class StorageProject(Project):
 - A slot is never assigned: `project.storage = ...` raises `AttributeError`,
   and mypy rejects it.
 
+A project or a unit is a {py:class}`~ingots.puer.slots.owner.SlotsOwner`: its
+`slots_` methods walk its slots, all of them or those holding one kind of
+entity, typed by that kind, and create nothing on the way.
+
+- `StorageProject.slots_iter(Unit)` gives the names and the slots of the
+  class itself; `StorageProject.slots_walk(Repository)` goes down through the
+  units too, with dotted paths: `storage.repository`.
+- `project.slots_find_entity("storage.repository", Repository)` gives the
+  entity at a path, created with the units on the way; a path without a
+  slot of that kind raises `LookupError` and creates nothing.
+- `project.slots_walk_entities()` gives the entities created so far.
+
 ## Customization
 
 A subclass customizes a child by declaring its slot again with a subclass of
@@ -129,20 +141,41 @@ reference cycles, and a project dies as soon as its holder drops it.
 
 {py:class}`~ingots.puer.runner.BaseRunner` runs a project in three stages:
 
-1. creates the project and awaits `project.configure()`;
-2. runs the workflow, `run_workflow()`, until it finishes or is stopped;
-3. awaits `project.shut_down()`, whatever happened before, and drops the
+1. creates the project and configures it: awaits its `_configure()` hook;
+2. runs the workflow, `_run_workflow()`, until it finishes or is stopped;
+3. shuts the project down, whatever happened before, and drops the
    project.
 
 It assumes nothing about where a run's input comes from: a subclass
-implements the workflow, `run_workflow()` and, to stop without being
-cancelled, `stop_workflow()`, and sets `_debug` and `_graceful_timeout` before
-the run. {doc}`cli` is one such runner.
+implements the workflow, `_run_workflow()` and, to stop without being
+cancelled, `_stop_workflow()`, and sets `_debug` and `_graceful_timeout` in
+`_prepare_run()`. {doc}`cli` is one such runner.
 
-SIGINT and SIGTERM stop the run, from `configure()` to the end of
-`shut_down()`, and each further one insists more:
+## What to call, what to override
 
-- the first calls `stop_workflow()`, and cancels the workflow if it is still
+The framework keeps the flow of a project in its own hands and leaves the
+details to its subclasses:
+
+- **Final methods are called, not overridden**: `runner.run()`, the
+  `slots_` methods. mypy rejects an override
+  (`@typing.final`), so a forgotten `super()` cannot break them. The
+  shutdown of a project is final too, and only the runner runs it.
+- **Hooks are overridden, not called**: their names start with an
+  underscore, and the framework calls them at their moment.
+  `Project._configure()`, `Project._shut_down()`,
+  `BaseRunner._run_workflow()`, `BaseCommand._run()` do the work of
+  their class. They are empty
+  or abstract in the framework: an override calls `super()` only to keep
+  what its own bases do, an addon's project for example.
+- An override says so with `@typing.override`. With mypy's
+  `explicit-override` error code on, as in Ingots itself, a method that
+  overrides a hook by chance, or a hook misspelt, is an error.
+- Everything else with an underscore belongs to `ingots.puer` itself.
+
+SIGINT and SIGTERM stop the run, from the configuring to the end of the
+shutdown, and each further one insists more:
+
+- the first calls `_stop_workflow()`, and cancels the workflow if it is still
   running after the graceful timeout (5 seconds by default); while
   configuring or shutting down, which cannot be asked to stop, it cancels
   them;

@@ -48,6 +48,7 @@ class LogContextVar[ValueType]:
         """The name the value is logged under."""
         return self._name
 
+    @t.override
     def __repr__(self) -> str:
         return f"{type(self).__qualname__}({self._name!r})"
 
@@ -83,6 +84,7 @@ class LogContext(dict[str, object]):
     ``name=value name=value``, or ``-`` when empty.
     """
 
+    @t.override
     def __str__(self) -> str:
         return " ".join(f"{name}={value}" for name, value in self.items()) or "-"
 
@@ -90,6 +92,7 @@ class LogContext(dict[str, object]):
 class LogContextFilter(logging.Filter):
     """Sets ``cvars`` of every record it passes to the bound log context."""
 
+    @t.override
     def filter(self, record: logging.LogRecord) -> bool:
         record.cvars = get_log_context()
         return True

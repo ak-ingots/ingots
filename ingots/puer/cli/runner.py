@@ -56,8 +56,9 @@ class CommandRunner(CliNode, BaseRunner):
             raise argparse.ArgumentTypeError(f"must be positive: {value!r}")
         return timeout
 
+    @t.override
     @classmethod
-    def cli_prepare_parser(cls, parser: argparse.ArgumentParser) -> None:
+    def _cli_prepare_parser(cls, parser: argparse.ArgumentParser) -> None:
         parser.add_argument(
             "--debug",
             dest="runner_debug",
@@ -76,8 +77,9 @@ class CommandRunner(CliNode, BaseRunner):
             ),
         )
 
+    @t.override
     @classmethod
-    def cli_build_args(cls, namespace: argparse.Namespace) -> CommandRunnerCliArgs:
+    def _cli_build_args(cls, namespace: argparse.Namespace) -> CommandRunnerCliArgs:
         return CommandRunnerCliArgs(
             debug=namespace.runner_debug,
             graceful_timeout=namespace.runner_graceful_timeout,
@@ -91,29 +93,29 @@ class CommandRunner(CliNode, BaseRunner):
         self._command_line = ParsedCommandLine(None, (), {})
         self._command: BaseCommand | None = None
 
-    def run(self) -> int:
-        self._parse_args()
-        return super().run()
-
-    async def run_workflow(self) -> int:
+    @t.override
+    async def _run_workflow(self) -> int:
         command = self._command = self._set_cli_args_on_path()
         logger.info("running %s", ".".join(self._command_line.command_path))
         try:
-            await command.run()
+            await command._run()
         finally:
             self._command = None
         return 0
 
-    async def stop_workflow(self) -> None:
+    @t.override
+    async def _stop_workflow(self) -> None:
         if self._command is not None:
-            self._command.stop()
+            self._command._stop()
 
-    def create_project(self) -> "Project":
-        project = super().create_project()
+    @t.override
+    def _create_project(self) -> "Project":
+        project = super()._create_project()
         self._set_cli_args(project, ())
         return project
 
-    def _parse_args(self) -> None:
+    @t.override
+    def _prepare_run(self) -> None:
         parser = self.cli_parser_cls(self._project_cls, type(self))
         self._command_line = parser.parse(self._argv)
         self._cli_set_args(self._command_line.runner_args)

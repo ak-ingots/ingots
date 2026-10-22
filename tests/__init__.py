@@ -32,12 +32,14 @@ class TestCase(unittest.TestCase):
     ``INGOTS_TEST_LOG`` is set.
     """
 
+    @t.override
     def run(
         self, result: unittest.TestResult | None = None
     ) -> unittest.TestResult | None:
         with preserve_logging():
             return super().run(result)
 
+    @t.override
     @contextlib.contextmanager
     def assertLogs(  # type: ignore[override]
         self,

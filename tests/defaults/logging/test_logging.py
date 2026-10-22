@@ -3,6 +3,7 @@ import contextlib
 import io
 import logging
 import os
+import typing as t
 from unittest import mock
 
 from ingots.defaults import ProjectCliArgs
@@ -33,6 +34,7 @@ class StartupLoggingTestCase(TestCase):
 
 
 class LoggingTestCase(TestCase):
+    @t.override
     def setUp(self) -> None:
         self.enterContext(mock.patch.dict(os.environ, clear=True))
 
@@ -88,7 +90,7 @@ class LoggingTestCase(TestCase):
         project = self.create_project()
         err = io.StringIO()
         with contextlib.redirect_stderr(err):
-            asyncio.run(project.configure())
+            asyncio.run(project._configure())
             with REQUEST_ID.bind("a1"):
                 logging.getLogger("ingots.test").info("handled")
             logging.getLogger("test_audit").warning("audited")

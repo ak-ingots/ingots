@@ -5,6 +5,8 @@ extend a shared ``common`` entity, the application joins them and customizes
 pkg1's entity at the bottom.
 """
 
+import typing as t
+
 from ingots.puer import Entity, Project, Unit, Slot
 
 # a default every addon may extend, like settings
@@ -74,6 +76,7 @@ class AppCommon(Pkg1Common, Pkg2Common):
 class AppEntity(Pkg1Entity):
     project: "AppProject"
 
+    @t.override
     def method(self) -> str:
         return f"{super().method()} + {self.project.pkg2_unit.method()}"
 

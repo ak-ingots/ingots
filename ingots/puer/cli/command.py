@@ -16,11 +16,11 @@ class BaseCommand(CliNode, Entity):
     """
 
     @abc.abstractmethod
-    async def run(self) -> None:
+    async def _run(self) -> None:
         """Does the work. An exception fails the run with exit code 1."""
         raise NotImplementedError(f"{type(self).__qualname__}.run")
 
-    def stop(self) -> None:
+    def _stop(self) -> None:
         """
         Asks the running command to finish. Does nothing by default: the
         runner cancels a command that is still running after the graceful

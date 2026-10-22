@@ -24,10 +24,12 @@ class BoolConfig(BaseConfig[bool]):
     TRUE_STRINGS: t.ClassVar[frozenset[str]] = frozenset({"1", "true", "yes", "on"})
     FALSE_STRINGS: t.ClassVar[frozenset[str]] = frozenset({"0", "false", "no", "off"})
 
+    @t.override
     def validate(self, value: object) -> None:
         if not isinstance(value, bool):
             raise TypeError(f"{self.name}: {self._show(value)} is not a bool")
 
+    @t.override
     def _parse(self, data: object) -> bool:
         match data:
             case bool():
@@ -46,10 +48,12 @@ class BoolConfig(BaseConfig[bool]):
 class IntConfig(BaseConfig[int]):
     """An integer. Converts a string and a float without a fraction."""
 
+    @t.override
     def validate(self, value: object) -> None:
         if not isinstance(value, int) or isinstance(value, bool):
             raise TypeError(f"{self.name}: {self._show(value)} is not an int")
 
+    @t.override
     def _parse(self, data: object) -> int:
         match data:
             case bool():
@@ -73,10 +77,12 @@ class IntConfig(BaseConfig[int]):
 class FloatConfig(BaseConfig[float]):
     """A float; an int is a float too. Converts a string."""
 
+    @t.override
     def validate(self, value: object) -> None:
         if not isinstance(value, (float, int)) or isinstance(value, bool):
             raise TypeError(f"{self.name}: {self._show(value)} is not a float")
 
+    @t.override
     def _parse(self, data: object) -> float:
         match data:
             case bool():
@@ -99,10 +105,12 @@ class DecimalConfig(BaseConfig[decimal.Decimal]):
     written (``0.1``, not its binary approximation).
     """
 
+    @t.override
     def validate(self, value: object) -> None:
         if not isinstance(value, decimal.Decimal):
             raise TypeError(f"{self.name}: {self._show(value)} is not a Decimal")
 
+    @t.override
     def _parse(self, data: object) -> decimal.Decimal:
         match data:
             case bool():
@@ -124,10 +132,12 @@ class DecimalConfig(BaseConfig[decimal.Decimal]):
 class StrConfig(BaseConfig[str]):
     """A string."""
 
+    @t.override
     def validate(self, value: object) -> None:
         if not isinstance(value, str):
             raise TypeError(f"{self.name}: {self._show(value)} is not a str")
 
+    @t.override
     def _parse(self, data: object) -> str:
         if isinstance(data, str):
             return data
@@ -137,11 +147,14 @@ class StrConfig(BaseConfig[str]):
 class SecureStrConfig(StrConfig):
     """A secret string: printed as ``***``."""
 
+    @t.override
     def __repr__(self) -> str:
         return f"{type(self).__qualname__}('***')"
 
+    @t.override
     def format_value(self, value: str) -> str:
         return "***"
 
+    @t.override
     def _show(self, data: object) -> str:
         return "'***'"

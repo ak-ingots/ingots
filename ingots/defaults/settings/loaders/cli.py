@@ -18,6 +18,7 @@ class CliLoader(BaseLoader):
 
     project: "Project"
 
+    @t.override
     async def load(self) -> list[Overrides]:
         try:
             args = self.project.cli_args

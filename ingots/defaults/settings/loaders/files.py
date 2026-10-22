@@ -8,7 +8,6 @@ import json
 import typing as t
 
 from ingots.puer import Entity, Slot, Unit
-from ingots.puer.slots import iter_slots
 
 from .base import BaseLoader, Overrides
 
@@ -41,6 +40,7 @@ class IniFormat(BaseFormat):
 
     EXTENSIONS = frozenset({".ini"})
 
+    @t.override
     def parse(self, text: str) -> dict[str, object]:
         parser = configparser.ConfigParser(allow_unnamed_section=True)
         parser.optionxform = str  # type: ignore[assignment,method-assign]
@@ -60,6 +60,7 @@ class JsonFormat(BaseFormat):
 
     EXTENSIONS = frozenset({".json"})
 
+    @t.override
     def parse(self, text: str) -> dict[str, object]:
         data = json.loads(text)
         if not isinstance(data, dict):
@@ -79,6 +80,7 @@ class FileLoader(Unit, BaseLoader):
     ini_format = Slot(IniFormat)
     json_format = Slot(JsonFormat)
 
+    @t.override
     async def load(self) -> list[Overrides]:
         try:
             args = self.project.cli_args
@@ -99,7 +101,10 @@ class FileLoader(Unit, BaseLoader):
 
     def _find_format(self, path: "Path") -> BaseFormat | None:
         extension = path.suffix.lower()
-        for name, slot in iter_slots(type(self)):
-            if issubclass(slot.cls, BaseFormat) and extension in slot.cls.EXTENSIONS:
-                return t.cast(BaseFormat, getattr(self, name))
+        # mypy takes no abstract class for type[...] (type-abstract); the kind
+        # is only matched with issubclass()
+        kind: type[BaseFormat] = BaseFormat  # type: ignore[type-abstract]
+        for name, slot in self.slots_iter(kind):
+            if extension in slot.cls.EXTENSIONS:
+                return self.slots_find_entity(name, kind)
         return None

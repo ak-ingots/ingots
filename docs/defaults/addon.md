@@ -61,12 +61,12 @@ class ServeCommand(BaseCommand):
         super().__init__(project)
         self._stopped = asyncio.Event()
 
-    async def run(self) -> None:
+    async def _run(self) -> None:
         configs = self.project.settings.configs
         logger.info("serving on %s:%s", configs.HTTP_HOST, configs.HTTP_PORT)
         await self._stopped.wait()
 
-    def stop(self) -> None:
+    def _stop(self) -> None:
         self._stopped.set()
 
 
