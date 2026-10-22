@@ -35,6 +35,23 @@ one of `added`, `changed`, `deprecated`, `removed`, `fixed`, `security`.
 `make cl-check` (and CI) fails a branch without one; `make cl-build
 VERSION=X.Y.Z` collates the fragments into `CHANGELOG.md`.
 
+## Releasing
+
+A release is a pull request and a tag:
+
+1. The release pull request sets the version, `uv version X.Y.Z`, and
+   collates the changelog, `make cl-build VERSION=X.Y.Z`.
+2. Once it is merged, the tag `vX.Y.Z` on its commit in `main` starts the
+   `release` workflow: it checks the tag against the version, runs
+   `make wheel-test` and publishes the tested build to TestPyPI, then to
+   PyPI, through trusted publishing.
+3. The next pull request moves `main` on to the next development version,
+   `uv version X.Y.(Z+1).dev0`.
+
+Run by hand, the `release` workflow rehearses on TestPyPI only, as
+`X.Y.Z.devN` with `N` the run number. A version is published once: neither
+index takes it again, even after a deletion.
+
 ## Design principles
 
 Code follows the ecosystem's
