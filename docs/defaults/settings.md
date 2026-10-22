@@ -90,8 +90,9 @@ Configuring the settings runs in two phases.
    They apply in this order, the later winning:
    - `--configs-file PATH`, an INI file (the options of every section) or a
      JSON object, repeated for more files;
-   - the environment variables with the project's prefix: with
-     `env_configs_prefix = "APP"` on the project, `APP_HTTP_PORT=9090`;
+   - the environment variables with the project's prefix,
+     `env_configs_prefix`: `INGOT_HTTP_PORT=9090` with the prefix of the
+     defaults, `APP_HTTP_PORT=9090` with `env_configs_prefix = "APP"`;
    - `--config NAME=value`, repeated for more configs.
 2. The settings convert the overrides to the values of the configs and
    apply them.

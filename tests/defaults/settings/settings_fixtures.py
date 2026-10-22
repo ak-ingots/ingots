@@ -123,5 +123,5 @@ class VerboseProject(AppProject):
         )
 
 
-class NoPrefixProject(Project):
-    """Forgets to set the prefix of its environment variables."""
+class DefaultPrefixProject(Project):
+    """Keeps the prefix of the defaults for its environment variables."""
