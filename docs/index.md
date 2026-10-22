@@ -11,7 +11,9 @@ classes down to the deepest entity, combining addons wrongly fails at import
 time rather than in production, and every addon ships contract tests that the
 application runs against its own composition.
 
-Ingots is being rewritten from scratch: nothing usable yet.
+**Status:** alpha. The core is in place: projects, units, entities and typed
+slots, the command-line runner and the components, with the standard units for
+the settings and the logging. The API may still change between minor versions.
 
 ## Where to go next
 

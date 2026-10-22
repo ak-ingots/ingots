@@ -1,6 +1,6 @@
 [project]
 name = "ingots"
-version = "0.30.0.dev0"
+version = "0.30.0"
 description = "Statically typed composition of Python applications from reusable addons, customizable at any depth."
 readme = "README.md"
 requires-python = ">=3.14"
@@ -9,7 +9,7 @@ license-files = ["LICENSE"]
 authors = [{name = "Aliaksandr Karotki", email = "abkarotki@gmail.com"}]
 keywords = ["framework", "ingots"]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Operating System :: MacOS",
     "Operating System :: POSIX :: Linux",

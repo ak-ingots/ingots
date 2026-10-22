@@ -1,1 +1,0 @@
-Projects and units walk their slots by the kind of entity: `slots_iter()`, `slots_walk()` with dotted paths, `slots_find_entity(path, kind)` and `slots_walk_entities()`; they replace the `iter_slots()` function. `Project.state`, a `ProjectState`, tells where the project is in its life: active, shutting down, shut down.
