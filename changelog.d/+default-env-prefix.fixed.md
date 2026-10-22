@@ -1,1 +1,0 @@
-A project of the defaults reads its environment variables with the prefix `INGOT` unless it sets its own `env_configs_prefix`, instead of failing: an addon run on its own no longer repeats the prefix of the ecosystem.
