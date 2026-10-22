@@ -23,11 +23,11 @@ class CliNode:
     cli_description: t.ClassVar[str] = ""
 
     @classmethod
-    def cli_prepare_parser(cls, parser: "ArgumentParser") -> None:
+    def _cli_prepare_parser(cls, parser: "ArgumentParser") -> None:
         """Adds this node's options to its parser. Adds none by default."""
 
     @classmethod
-    def cli_build_args(cls, namespace: "Namespace") -> object:
+    def _cli_build_args(cls, namespace: "Namespace") -> object:
         """Builds this node's CLI arguments from the namespace. None by default."""
         return None
 

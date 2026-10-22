@@ -60,8 +60,9 @@ Logs of a run: `INGOTS_TEST_LOG=info make test` (test cases derive from
   it changes only at release time.
 - Flat layout: the package is `ingots/` at the root. The wheel must be
   complete: `make wheel-test` imports the package only from the wheel.
-- Tests are stdlib `unittest`, no pytest. Code passes `mypy --strict`; black
-  at 88 columns.
+- Tests are stdlib `unittest`, no pytest. Code passes `mypy --strict` with
+  `explicit-override`: every override takes `@t.override`; black at 88
+  columns.
 - The supported interpreters are listed in three places with nothing linking
   them: `PYTHONS` in the Makefile, the classifiers and the `wheel` matrix in
   `.github/workflows/ci.yml`. Change them together.

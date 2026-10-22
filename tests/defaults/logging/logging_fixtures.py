@@ -24,6 +24,7 @@ class QuietSettings(Settings):
 class AuditLogging(Logging):
     """Adds a logger of its own, on the default handler."""
 
+    @t.override
     def build_loggers(self) -> dict[str, dict[str, t.Any]]:
         audit = {"level": "WARNING", "handlers": ["default"], "propagate": False}
         return {**super().build_loggers(), "test_audit": audit}

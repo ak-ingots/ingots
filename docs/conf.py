@@ -74,6 +74,7 @@ class _NearestPythonDomain(PythonDomain):
     ``ingots.defaults.project.Project``.
     """
 
+    @t.override
     def find_obj(
         self,
         env: "BuildEnvironment",

@@ -16,7 +16,7 @@ from ingots.puer.cli import BaseCommand, CliProject, CliUnit, CommandRunner
 class Migrate(BaseCommand):
     cli_description = "Applies the pending migrations."
 
-    async def run(self) -> None: ...
+    async def _run(self) -> None: ...
 
 
 class Storage(CliUnit):
@@ -45,8 +45,8 @@ $ app storage migrate
   command creates only the units on its path: `app storage migrate` creates
   `storage` and `migrate`, nothing else.
 - Every node on the path (the project, its units, the command) adds its own
-  options in `cli_prepare_parser()` and builds its arguments in
-  `cli_build_args()`; the runner hands them over as `cli_args`, narrowed by an
+  options in `_cli_prepare_parser()` and builds its arguments in
+  `_cli_build_args()`; the runner hands them over as `cli_args`, narrowed by an
   annotation (`cli_args: MigrateArgs`).
 - {py:class}`~ingots.puer.cli.parser.CliParser` builds and parses the command
   line, and hands the runner a
@@ -64,7 +64,7 @@ line before the run: `sys.argv[1:]`, or the `argv` given to it,
 `CommandRunner(AppProject, ["storage", "migrate"]).run()`. Then it runs the
 project as every runner does, with the command as the workflow:
 
-- the first stop signal calls `command.stop()`; the graceful timeout is
+- the first stop signal calls `command._stop()`; the graceful timeout is
   `--graceful-timeout SECONDS`;
 - `--debug` runs the asyncio event loop in debug mode;
 - the exit code is 0 when the command finishes, 1 when a stage fails or is

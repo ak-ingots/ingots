@@ -6,8 +6,6 @@ import typing as t
 from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass
 
-from ingots.puer.slots import iter_slots
-
 from .command import BaseCommand
 from .node import CliNode
 from .unit import CliUnit
@@ -16,6 +14,7 @@ if t.TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
     from ingots.puer.project import Project
+    from ingots.puer.slots import SlotsOwner
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,20 +77,20 @@ class CliParser:
         if path is None:
             parser.error("the project declares no commands")
         return ParsedCommandLine(
-            runner_args=self._runner_cls.cli_build_args(namespace),
+            runner_args=self._runner_cls._cli_build_args(namespace),
             command_path=path,
             node_args=self._build_node_args(namespace, path),
         )
 
     def _build_children(
-        self, owner_cls: type, path: tuple[str, ...]
+        self, owner_cls: type["SlotsOwner"], path: tuple[str, ...]
     ) -> tuple[CliTree, ...]:
         """
         The tree below a class. A CLI unit without commands is left out, and
         so is everything below a unit that is not a CLI unit.
         """
         children = []
-        for name, slot in iter_slots(owner_cls):
+        for name, slot in owner_cls.slots_iter():
             child_path = (*path, name)
             cli_name = self._get_cli_name(name)
             if issubclass(slot.cls, BaseCommand):
@@ -114,14 +113,14 @@ class CliParser:
 
     def _build_parser(self) -> ArgumentParser:
         parser = ArgumentParser(description=self._get_description(self._tree.cls))
-        self._runner_cls.cli_prepare_parser(parser)
+        self._runner_cls._cli_prepare_parser(parser)
         self._prepare_parser(parser, self._tree)
         return parser
 
     def _prepare_parser(self, parser: ArgumentParser, tree: CliTree) -> None:
         """Adds the options of a node and the sub-commands below it."""
         if issubclass(tree.cls, CliNode):
-            tree.cls.cli_prepare_parser(parser)
+            tree.cls._cli_prepare_parser(parser)
         if issubclass(tree.cls, BaseCommand):
             parser.set_defaults(**{self.COMMAND_PATH_DEST: tree.path})
         if not tree.children:
@@ -147,7 +146,7 @@ class CliParser:
             node = next(child for child in node.children if child.path[-1] == name)
             nodes.append(node)
         return {
-            node.path: node.cls.cli_build_args(namespace)
+            node.path: node.cls._cli_build_args(namespace)
             for node in nodes
             if issubclass(node.cls, CliNode)
         }

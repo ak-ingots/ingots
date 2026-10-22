@@ -56,8 +56,9 @@ class Project(CliProject):
             raise argparse.ArgumentTypeError(f"{option!r} is not a file")
         return path
 
+    @t.override
     @classmethod
-    def cli_prepare_parser(cls, parser: argparse.ArgumentParser) -> None:
+    def _cli_prepare_parser(cls, parser: argparse.ArgumentParser) -> None:
         parser.add_argument(
             "--config",
             dest="project_configs",
@@ -77,14 +78,16 @@ class Project(CliProject):
             help="overrides configs from an INI or JSON file; repeat for more",
         )
 
+    @t.override
     @classmethod
-    def cli_build_args(cls, namespace: argparse.Namespace) -> ProjectCliArgs:
+    def _cli_build_args(cls, namespace: argparse.Namespace) -> ProjectCliArgs:
         return ProjectCliArgs(
             configs=tuple(namespace.project_configs),
             configs_files=tuple(namespace.project_configs_files),
         )
 
-    async def configure(self) -> None:
-        await super().configure()
+    @t.override
+    async def _configure(self) -> None:
+        await super()._configure()
         await self.settings.configure()
         await self.logging.configure()

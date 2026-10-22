@@ -52,6 +52,7 @@ class BaseConfig[ValueType]:
     def __set__(self, obj: "Configs", value: t.Never) -> t.NoReturn:
         raise AttributeError(f"{self._name} is read-only: the settings apply configs")
 
+    @t.override
     def __repr__(self) -> str:
         return f"{type(self).__qualname__}({self._default!r})"
 

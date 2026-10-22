@@ -4,6 +4,7 @@ __all__ = ("EnumConfig", "LogLevelConfig")
 
 import enum
 import logging
+import typing as t
 
 from .base import BaseConfig
 from .standard import IntConfig
@@ -12,6 +13,7 @@ from .standard import IntConfig
 class EnumConfig[EnumType: enum.Enum](BaseConfig[EnumType]):
     """A member of the enum of its default. Converts a member name."""
 
+    @t.override
     def validate(self, value: object) -> None:
         if not isinstance(value, type(self.default)):
             raise TypeError(
@@ -19,6 +21,7 @@ class EnumConfig[EnumType: enum.Enum](BaseConfig[EnumType]):
                 f"a {type(self.default).__qualname__}"
             )
 
+    @t.override
     def _parse(self, data: object) -> EnumType:
         enum_cls = type(self.default)
         if isinstance(data, enum_cls):
@@ -40,9 +43,11 @@ class LogLevelConfig(IntConfig):
     name of a standard level.
     """
 
+    @t.override
     def format_value(self, value: int) -> str:
         return logging.getLevelName(value)
 
+    @t.override
     def _parse(self, data: object) -> int:
         if isinstance(data, str) and not data.lstrip("-").isdigit():
             try:

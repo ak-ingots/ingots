@@ -2,6 +2,7 @@
 
 import argparse
 import enum
+import typing as t
 from dataclasses import dataclass
 
 from ingots.defaults import Project, ProjectCliArgs
@@ -69,6 +70,7 @@ class AppProject(HttpProject, DbProject):
 class VaultLoader(BaseLoader):
     """A source of another kind: a secrets store."""
 
+    @t.override
     async def load(self) -> list[Overrides]:
         return [Overrides("the vault", {"HTTP_TOKEN": "from the vault"})]
 
@@ -104,14 +106,16 @@ class VerboseProject(AppProject):
 
     cli_args: VerboseCliArgs
 
+    @t.override
     @classmethod
-    def cli_prepare_parser(cls, parser: argparse.ArgumentParser) -> None:
-        super().cli_prepare_parser(parser)
+    def _cli_prepare_parser(cls, parser: argparse.ArgumentParser) -> None:
+        super()._cli_prepare_parser(parser)
         parser.add_argument("--verbose", dest="verbose", action="store_true")
 
+    @t.override
     @classmethod
-    def cli_build_args(cls, namespace: argparse.Namespace) -> VerboseCliArgs:
-        base = super().cli_build_args(namespace)
+    def _cli_build_args(cls, namespace: argparse.Namespace) -> VerboseCliArgs:
+        base = super()._cli_build_args(namespace)
         return VerboseCliArgs(
             configs=base.configs,
             configs_files=base.configs_files,

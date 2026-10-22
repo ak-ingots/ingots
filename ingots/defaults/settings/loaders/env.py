@@ -20,6 +20,7 @@ class EnvLoader(BaseLoader):
 
     project: "Project"
 
+    @t.override
     async def load(self) -> list[Overrides]:
         prefix = f"{self._get_prefix()}_".upper()
         data = {

@@ -3,6 +3,7 @@ import pathlib
 import signal
 import subprocess
 import sys
+import typing as t
 from unittest import mock
 
 from tests import TestCase
@@ -25,6 +26,7 @@ from .runner_fixtures import (
 
 
 class RunnerTestCase(TestCase):
+    @t.override
     def setUp(self) -> None:
         EVENTS.clear()
         PROJECTS.clear()

@@ -14,5 +14,6 @@ if t.TYPE_CHECKING:
 class Unit(SlotsOwner, Entity):
     """An entity grouping other entities in slots."""
 
+    @t.override
     def _slots_get_project(self) -> "Project":
         return self.project

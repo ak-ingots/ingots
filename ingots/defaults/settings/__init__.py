@@ -49,6 +49,7 @@ class Settings(CliUnit):
     cli_loader = Slot(CliLoader)
     list = Slot(ListConfigsCommand)
 
+    @t.override
     @classmethod
     def __init_subclass__(cls, **kwargs: t.Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -143,5 +144,6 @@ class ConfigsError(Exception):
         """The problems, one line each."""
         return t.cast(tuple[str, ...], self.args[1])
 
+    @t.override
     def __str__(self) -> str:
         return t.cast(str, self.args[0])

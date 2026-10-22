@@ -1,8 +1,8 @@
 import typing as t
 import unittest
+from collections.abc import Iterator
 
-from ingots.puer import Entity, Project, Slot
-from ingots.puer.slots import iter_slots
+from ingots.puer import Entity, Project, Slot, Unit
 
 from .fixtures import (
     AppCommon,
@@ -12,6 +12,7 @@ from .fixtures import (
     AppUnit,
     Common,
     Pkg1Common,
+    Pkg1Entity,
     Pkg1Project,
     Pkg2Project,
 )
@@ -30,7 +31,7 @@ class SlotOnTheClassTestCase(unittest.TestCase):
 
     def test_slots_are_listed_in_declaration_order(self) -> None:
         self.assertEqual(
-            [(name, slot.cls) for name, slot in iter_slots(AppProject)],
+            [(name, slot.cls) for name, slot in AppProject.slots_iter()],
             [
                 ("common", AppCommon),
                 ("pkg2_unit", Pkg2Project.pkg2_unit.cls),
@@ -133,4 +134,89 @@ class SlotsCheckTestCase(unittest.TestCase):
         class Empty(Project):
             pass
 
-        self.assertEqual(list(iter_slots(Empty)), [])
+        self.assertEqual(list(Empty.slots_iter()), [])
+
+
+class SlotsOwnerTestCase(unittest.TestCase):
+    def test_the_slots_are_iterated_by_kind(self) -> None:
+        units = AppProject.slots_iter(Unit)
+        t.assert_type(units, Iterator[tuple[str, Slot[Unit]]])
+        self.assertEqual(
+            [(name, slot.cls) for name, slot in units],
+            [("pkg2_unit", Pkg2Project.pkg2_unit.cls), ("pkg1_unit", AppUnit)],
+        )
+        self.assertEqual(list(AppProject.slots_iter(AppEntity)), [])
+
+    def test_the_slots_are_walked_with_their_paths(self) -> None:
+        self.assertEqual(
+            [path for path, _ in AppProject.slots_walk()],
+            [
+                "common",
+                "pkg2_unit",
+                "pkg1_unit",
+                "pkg1_unit.sub_unit",
+                "pkg1_unit.sub_unit.entity",
+            ],
+        )
+        self.assertEqual(
+            [(path, slot.cls) for path, slot in AppProject.slots_walk(Pkg1Entity)],
+            [("pkg1_unit.sub_unit.entity", AppEntity)],
+        )
+
+    def test_an_entity_is_found_by_its_path(self) -> None:
+        p = AppProject()
+        entity = p.slots_find_entity("pkg1_unit.sub_unit.entity", Pkg1Entity)
+        t.assert_type(entity, Pkg1Entity)
+        self.assertIs(entity, p.pkg1_unit.sub_unit.entity)
+        self.assertIs(p.slots_find_entity("common"), p.common)
+
+    def test_a_wrong_path_creates_nothing(self) -> None:
+        p = AppProject()
+        for path, kind in [
+            ("pkg1_unit.missing", Entity),
+            ("pkg1_unit.sub_unit", Pkg1Entity),
+            ("", Entity),
+        ]:
+            with (
+                self.subTest(path),
+                self.assertRaisesRegex(
+                    LookupError, f"^no slot of {kind.__qualname__} at {path!r}$"
+                ),
+            ):
+                p.slots_find_entity(path, kind)
+        self.assertEqual(vars(p), {})
+
+    def test_the_created_entities_are_walked(self) -> None:
+        p = AppProject()
+        self.assertEqual(list(p.slots_walk_entities()), [])
+        entity = p.pkg1_unit.sub_unit.entity
+        self.assertEqual(
+            list(p.slots_walk_entities()),
+            [p.pkg1_unit, p.pkg1_unit.sub_unit, entity],
+        )
+        self.assertEqual(
+            list(p.slots_walk_entities(Unit)), [p.pkg1_unit, p.pkg1_unit.sub_unit]
+        )
+
+    def test_a_forgotten_super_still_checks_and_indexes(self) -> None:
+        class Careless(Project):
+            common = Slot(Pkg1Common)
+
+            @t.override
+            @classmethod
+            def __init_subclass__(cls, **kwargs: t.Any) -> None:
+                pass  # no super(): SlotsOwner does not see the subclasses
+
+        class Child(Careless):
+            pkg1_unit = Slot(AppUnit)
+
+        self.assertNotIn("_slots_index", vars(Child))
+        self.assertEqual(
+            [name for name, _ in Child.slots_iter()], ["common", "pkg1_unit"]
+        )
+
+        class Wrong(Careless):
+            common = Slot(Common)  # type: ignore[assignment]
+
+        with self.assertRaisesRegex(TypeError, "Wrong.common = .* does not extend"):
+            list(Wrong.slots_iter())

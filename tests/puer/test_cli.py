@@ -32,6 +32,7 @@ def list_tree(tree: CliTree, indent: str = "") -> list[str]:
 
 
 class RunnerTestCase(TestCase):
+    @t.override
     def setUp(self) -> None:
         EVENTS.clear()
         PROJECTS.clear()
@@ -80,6 +81,7 @@ class CliTreeTestCase(unittest.TestCase):
 
     def test_a_runner_takes_its_own_parser(self) -> None:
         class SnakeCaseParser(CliParser):
+            @t.override
             def _get_cli_name(self, slot_name: str) -> str:
                 return slot_name
 
@@ -113,7 +115,8 @@ class FiniteCommandTestCase(RunnerTestCase):
         received: list[object] = []
 
         class Recorder(Greet):
-            async def run(self) -> None:
+            @t.override
+            async def _run(self) -> None:
                 project = self.project
                 received.extend(
                     [project.cli_args, project.greetings.cli_args, self.cli_args]

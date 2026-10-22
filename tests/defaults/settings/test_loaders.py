@@ -27,6 +27,7 @@ from .settings_fixtures import (
 
 
 class LoaderTestCase(TestCase):
+    @t.override
     def setUp(self) -> None:
         self.tmp = pathlib.Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.enterContext(mock.patch.dict(os.environ, clear=True))
@@ -228,7 +229,7 @@ class SettingsLoadingTestCase(LoaderTestCase):
         project = self.create_project(
             configs_files=(path,), configs=(("HTTP_PORT", "3"),)
         )
-        asyncio.run(project.configure())
+        asyncio.run(project._configure())
         configs = project.settings.configs
         self.assertEqual(
             (configs.HTTP_PORT, configs.DB_NAME, configs.HTTP_TOKEN), (3, "env", "file")
@@ -247,7 +248,7 @@ class SettingsLoadingTestCase(LoaderTestCase):
     def test_a_loader_of_another_kind_is_added_by_a_slot(self) -> None:
         os.environ["TEST_HTTP_TOKEN"] = "from the environment"
         project = VaultProject()
-        asyncio.run(project.configure())
+        asyncio.run(project._configure())
         self.assertEqual(project.settings.configs.HTTP_TOKEN, "from the vault")
 
     def test_the_loaders_must_be_slots_of_loaders(self) -> None:

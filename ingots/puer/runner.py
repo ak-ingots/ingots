@@ -35,9 +35,9 @@ class BaseRunner:
     3. the third kills the process with the signal, as if there were no
        runner.
 
-    A subclass implements the workflow: :meth:`run_workflow`, and
-    :meth:`stop_workflow` when it can stop without being cancelled. It sets
-    ``_debug`` and ``_graceful_timeout`` before the run.
+    A subclass implements the workflow: :meth:`_run_workflow`, and
+    :meth:`_stop_workflow` when it can stop without being cancelled. It sets
+    ``_debug`` and ``_graceful_timeout`` in :meth:`_prepare_run`.
     """
 
     GRACEFUL_TIMEOUT_DEFAULT: t.ClassVar[float] = 5.0
@@ -63,42 +63,50 @@ class BaseRunner:
             raise RuntimeError(f"{type(self).__qualname__}: no project is running")
         return self._project
 
+    @t.final
     def run(self) -> int:
         """Runs the project from start to finish and returns the exit code."""
+        self._prepare_run()
         return asyncio.run(self._run_project(), debug=self._debug)
 
-    @abc.abstractmethod
-    async def run_workflow(self) -> int:
-        """Does the work on the configured project; returns the exit code."""
-        raise NotImplementedError(f"{type(self).__qualname__}.run_workflow")
-
-    async def stop_workflow(self) -> None:
+    def _prepare_run(self) -> None:
         """
-        Asks a running :meth:`run_workflow` to finish: called on the first
+        Prepares the run before the event loop starts: the place to set
+        ``_debug`` and ``_graceful_timeout``. Does nothing by default.
+        """
+
+    @abc.abstractmethod
+    async def _run_workflow(self) -> int:
+        """Does the work on the configured project; returns the exit code."""
+        raise NotImplementedError(f"{type(self).__qualname__}._run_workflow")
+
+    async def _stop_workflow(self) -> None:
+        """
+        Asks a running :meth:`_run_workflow` to finish: called on the first
         stop signal. Does nothing here: the workflow is cancelled once the
         graceful timeout is over.
         """
 
-    def create_project(self) -> "Project":
+    def _create_project(self) -> "Project":
         """Creates the project to run."""
         return self._project_cls()
 
     async def _run_project(self) -> int:
-        project = self._project = self.create_project()
+        project = self._project = self._create_project()
         loop = asyncio.get_running_loop()
         for sig in STOP_SIGNALS:
             loop.add_signal_handler(sig, self._handle_stop_signal, sig)
         code = 1
         try:
-            await self._run_stage("configuring", project.configure())
+            await self._run_stage("configuring", project._configure())
             code = await self._run_stage(
-                "the workflow", self.run_workflow(), is_workflow=True
+                "the workflow", self._run_workflow(), is_workflow=True
             )
         except _StageFailed:
             code = 1
         finally:
             try:
-                await self._run_stage("shutting down", project.shut_down())
+                await self._run_stage("shutting down", project._do_shut_down())
             except _StageFailed:
                 code = code or 1
             finally:
@@ -150,7 +158,7 @@ class BaseRunner:
 
     async def _stop_workflow_gracefully(self, task: "asyncio.Task[t.Any]") -> None:
         try:
-            await self.stop_workflow()
+            await self._stop_workflow()
         except Exception:
             logger.exception("stopping the workflow failed")
         _, pending = await asyncio.wait({task}, timeout=self._graceful_timeout)

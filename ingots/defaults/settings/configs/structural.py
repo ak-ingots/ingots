@@ -15,6 +15,7 @@ class TupleConfig[TupleType: tuple[t.Any, ...]](BaseConfig[TupleType]):
     ``["localhost", 8080]``.
     """
 
+    @t.override
     def validate(self, value: object) -> None:
         if not isinstance(value, tuple):
             raise TypeError(f"{self.name}: {self._show(value)} is not a tuple")
@@ -30,6 +31,7 @@ class TupleConfig[TupleType: tuple[t.Any, ...]](BaseConfig[TupleType]):
                     f"a {type(default).__qualname__}"
                 )
 
+    @t.override
     def _parse(self, data: object) -> TupleType:
         if isinstance(data, str):
             try:

@@ -81,7 +81,7 @@ class_attributes_order = [
 [tool.mypy]
 strict = true
 python_version = "3.14"
-enable_error_code = ["deprecated"]
+enable_error_code = ["deprecated", "explicit-override"]
 
 [tool.towncrier]
 name = "Ingots"

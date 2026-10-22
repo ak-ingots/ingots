@@ -16,5 +16,6 @@ class LoggingInfoCommand(BaseCommand):
     cli_description = "Prints the logging configuration of the project."
     project: "Project"
 
-    async def run(self) -> None:
+    @t.override
+    async def _run(self) -> None:
         self.project.logging.print_config()
