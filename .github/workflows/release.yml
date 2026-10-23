@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0  # the tag is checked against origin/main
-      - uses: astral-sh/setup-uv@v10.3.0  # no floating major tags since v8
+      - uses: astral-sh/setup-uv@v10.3.2  # no floating major tags since v8
       - name: Check the tag
         if: github.ref_type == 'tag'
         run: |

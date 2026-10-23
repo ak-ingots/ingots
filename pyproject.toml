@@ -27,7 +27,7 @@ changelog = "https://github.com/ak-ingots/ingots/blob/main/CHANGELOG.md"
 documentation = "https://ingots.readthedocs.io/"
 
 [build-system]
-requires = ["uv_build>=0.12,<0.13"]
+requires = ["uv_build>=0.13.5,<0.14"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
@@ -35,6 +35,8 @@ module-name = "ingots"
 module-root = ""
 
 [tool.uv]
+# uv 0.13.5 drops the eMudhra roots from its certificates and its Pythons.
+required-version = ">=0.13.5"
 environments = ["sys_platform == 'linux'", "sys_platform == 'darwin'"]
 
 [dependency-groups]

@@ -1,0 +1,1 @@
+The development tooling moves past the eMudhra certificate incident: uv 0.13.5 at least (`required-version`), with the `uv_build` 0.13 backend, `setup-uv` 10.3.2 in CI and certifi 2026.10.23 in the lock.
