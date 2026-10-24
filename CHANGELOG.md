@@ -5,6 +5,10 @@ are the previous implementation.
 
 <!-- towncrier release notes start -->
 
+## [0.31.0] - 2026-10-24
+### Changed
+- Joining units fails when the class is created instead of losing a source: settings must list in `LOADERS` the loaders of all their bases, and the formats of a file loader may not share an extension.
+
 ## [0.30.1] - 2026-10-22
 ### Fixed
 - A project of the defaults reads its environment variables with the prefix `INGOT` unless it sets its own `env_configs_prefix`, instead of failing: an addon run on its own no longer repeats the prefix of the ecosystem.
