@@ -73,12 +73,19 @@ class FileLoader(Unit, BaseLoader):
     Loads the ``--configs-file PATH`` options of the project, in their order,
     each file in the format its extension chooses among the formats of the
     slots: ``yaml_format = Slot(YamlFormat)`` in a subclass adds one. Loads
-    nothing when the project is not run from the command line.
+    nothing when the project is not run from the command line. An extension
+    belongs to one format: a subclass whose formats share one fails.
     """
 
     project: "Project"
     ini_format = Slot(IniFormat)
     json_format = Slot(JsonFormat)
+
+    @t.override
+    @classmethod
+    def __init_subclass__(cls, **kwargs: t.Any) -> None:
+        super().__init_subclass__(**kwargs)
+        check_format_extensions(cls)
 
     @t.override
     async def load(self) -> list[Overrides]:
@@ -101,10 +108,28 @@ class FileLoader(Unit, BaseLoader):
 
     def _find_format(self, path: "Path") -> BaseFormat | None:
         extension = path.suffix.lower()
-        # mypy takes no abstract class for type[...] (type-abstract); the kind
-        # is only matched with issubclass()
-        kind: type[BaseFormat] = BaseFormat  # type: ignore[type-abstract]
-        for name, slot in self.slots_iter(kind):
+        for name, slot in self.slots_iter(_FORMAT):
             if extension in slot.cls.EXTENSIONS:
-                return self.slots_find_entity(name, kind)
+                return self.slots_find_entity(name, _FORMAT)
         return None
+
+
+def check_format_extensions(cls: type[FileLoader]) -> None:
+    """
+    Internal, run when the class is created: an extension belongs to one
+    format slot of the file loader, so no format shadows another.
+    """
+    owners: dict[str, str] = {}
+    for name, slot in cls.slots_iter(_FORMAT):
+        for extension in slot.cls.EXTENSIONS:
+            owner = owners.setdefault(extension, name)
+            if owner != name:
+                raise TypeError(
+                    f"{cls.__qualname__}: {extension!r} is an extension of "
+                    f"both {owner} and {name}"
+                )
+
+
+# the kind of the format slots; mypy takes no abstract class for type[...]
+# (type-abstract), and the kind is only matched with issubclass()
+_FORMAT: type[BaseFormat] = BaseFormat  # type: ignore[type-abstract]

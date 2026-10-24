@@ -10,17 +10,21 @@ from unittest import mock
 
 from ingots.defaults import Project, ProjectCliArgs
 from ingots.defaults.settings import ConfigsError, Settings
-from ingots.defaults.settings.loaders import Overrides
+from ingots.defaults.settings.loaders import FileLoader, JsonFormat, Overrides
+from ingots.puer import Slot
 from ingots.puer.cli import CliParser, CommandRunner
 
 from tests import TestCase
 
 from .settings_fixtures import (
     AppProject,
+    AppSettings,
     Mode,
     DefaultPrefixProject,
     StrictProject,
+    VaultLoader,
     VaultProject,
+    VaultSettings,
     VerboseCliArgs,
     VerboseProject,
 )
@@ -132,6 +136,37 @@ class FileLoaderTestCase(LoaderTestCase):
                 self.assertIn(problem, message)
         [overrides] = self.load(self.tmp / "gone.json")
         self.assertIn("No such file", overrides.problems[0])
+
+    def test_an_extension_belongs_to_one_format(self) -> None:
+        class Json5Format(JsonFormat):
+            EXTENSIONS = frozenset({".json5", ".json"})
+
+        with self.assertRaisesRegex(
+            TypeError,
+            r"BadFileLoader: '.json' is an extension of both json_format and "
+            r"json5_format$",
+        ):
+
+            class BadFileLoader(FileLoader):
+                json5_format = Slot(Json5Format)
+
+    def test_joined_loaders_may_not_share_an_extension(self) -> None:
+        class JsoncFormat(JsonFormat):
+            EXTENSIONS = frozenset({".jsonc"})
+
+        class LaxJsonFormat(JsonFormat):
+            EXTENSIONS = frozenset({".jsonc"})
+
+        class JsoncFileLoader(FileLoader):
+            jsonc_format = Slot(JsoncFormat)
+
+        class LaxFileLoader(FileLoader):
+            lax_format = Slot(LaxJsonFormat)
+
+        with self.assertRaisesRegex(TypeError, r"AppFileLoader: '.jsonc' is an"):
+
+            class AppFileLoader(JsoncFileLoader, LaxFileLoader):
+                pass
 
 
 class ConvertOverridesTestCase(LoaderTestCase):
@@ -264,6 +299,31 @@ class SettingsLoadingTestCase(LoaderTestCase):
 
                 class BadSettings(Settings):
                     LOADERS = (*Settings.LOADERS, name)
+
+    def test_joined_settings_list_the_loaders_of_all_bases(self) -> None:
+        class KeysLoader(VaultLoader):
+            pass
+
+        class KeysSettings(AppSettings):
+            LOADERS = (*AppSettings.LOADERS, "keys_loader")
+            keys_loader = Slot(KeysLoader)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            r"BadSettings.LOADERS lacks 'keys_loader' of \S*KeysSettings.LOADERS: "
+            r"list the loaders of all bases$",
+        ):
+
+            class BadSettings(VaultSettings, KeysSettings):
+                pass
+
+        class JoinedSettings(VaultSettings, KeysSettings):
+            LOADERS = (*KeysSettings.LOADERS, "vault_loader")
+
+        self.assertEqual(
+            JoinedSettings.LOADERS,
+            ("file_loader", "env_loader", "cli_loader", "keys_loader", "vault_loader"),
+        )
 
     def test_strict_configuration_fails_the_run(self) -> None:
         os.environ["TEST_IS_STRICT_CONFIGS"] = "1"
