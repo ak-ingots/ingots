@@ -37,7 +37,9 @@ class Settings(CliUnit):
 
     An addon with configs of its own narrows :attr:`configs` in a subclass:
     ``configs = Slot(HttpConfigs)``; one with another source adds a loader
-    slot and its name to :attr:`LOADERS`.
+    slot and its name to :attr:`LOADERS`. Settings joining such addons list
+    the loaders of all their bases in :attr:`LOADERS`, in the order they
+    choose: one left out fails the class.
     """
 
     LOADERS: t.ClassVar[tuple[str, ...]] = ("file_loader", "env_loader", "cli_loader")
@@ -53,12 +55,8 @@ class Settings(CliUnit):
     @classmethod
     def __init_subclass__(cls, **kwargs: t.Any) -> None:
         super().__init_subclass__(**kwargs)
-        for name in cls.LOADERS:
-            slot = inspect.getattr_static(cls, name, None)
-            if not (isinstance(slot, Slot) and issubclass(slot.cls, BaseLoader)):
-                raise TypeError(
-                    f"{cls.__qualname__}.LOADERS: {name!r} is not a slot of a loader"
-                )
+        check_loader_slots(cls)
+        check_base_loaders(cls)
 
     async def configure(self) -> None:
         """Loads and applies the overrides, then prints the configs if asked."""
@@ -147,3 +145,30 @@ class ConfigsError(Exception):
     @t.override
     def __str__(self) -> str:
         return t.cast(str, self.args[0])
+
+
+def check_loader_slots(cls: type[Settings]) -> None:
+    """
+    Internal, run when the class is created: every name of
+    :attr:`Settings.LOADERS` is a slot of a loader.
+    """
+    for name in cls.LOADERS:
+        slot = inspect.getattr_static(cls, name, None)
+        if not (isinstance(slot, Slot) and issubclass(slot.cls, BaseLoader)):
+            raise TypeError(
+                f"{cls.__qualname__}.LOADERS: {name!r} is not a slot of a loader"
+            )
+
+
+def check_base_loaders(cls: type[Settings]) -> None:
+    """
+    Internal, run when the class is created: :attr:`Settings.LOADERS` keeps
+    the loaders of every direct base, so joined settings lose no source.
+    """
+    for base in cls.__bases__:
+        for name in getattr(base, "LOADERS", ()):
+            if name not in cls.LOADERS:
+                raise TypeError(
+                    f"{cls.__qualname__}.LOADERS lacks {name!r} of "
+                    f"{base.__qualname__}.LOADERS: list the loaders of all bases"
+                )
