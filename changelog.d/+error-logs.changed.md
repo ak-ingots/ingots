@@ -1,1 +1,0 @@
-A failed stage of the runner, a failed stop of the workflow and a component failing to shut down log the `repr()` of the exception in the message, its message and its context, `failed: RuntimeError('boom')`, before the traceback: the `str()` of an exception following the pattern of Ingots holds its message only.
