@@ -9,6 +9,7 @@ import typing as t
 
 from ingots.puer.entity import Entity
 
+from .base import BaseSlot
 from .entity import Slot
 
 if t.TYPE_CHECKING:
@@ -30,7 +31,7 @@ class SlotsOwner:
 
     # the slots of the class, own and inherited, in declaration order; set
     # on the class itself, see _get_index()
-    _slots_index: t.ClassVar[dict[str, Slot[t.Any]]] = {}
+    _slots_index: t.ClassVar[dict[str, BaseSlot[t.Any]]] = {}
 
     @t.override
     @classmethod
@@ -40,19 +41,19 @@ class SlotsOwner:
 
     @t.overload
     @classmethod
-    def slots_iter(cls) -> "Iterator[tuple[str, Slot[t.Any]]]": ...
+    def slots_iter(cls) -> "Iterator[tuple[str, BaseSlot[t.Any]]]": ...
 
     @t.overload
     @classmethod
     def slots_iter[EntityType: Entity](
         cls, kind: type[EntityType]
-    ) -> "Iterator[tuple[str, Slot[EntityType]]]": ...
+    ) -> "Iterator[tuple[str, BaseSlot[EntityType]]]": ...
 
     @t.final
     @classmethod
     def slots_iter(
         cls, kind: type[Entity] = Entity
-    ) -> "Iterator[tuple[str, Slot[t.Any]]]":
+    ) -> "Iterator[tuple[str, BaseSlot[t.Any]]]":
         """
         The slots of the class holding ``kind``, own and inherited, in
         declaration order, with their names.
@@ -63,19 +64,19 @@ class SlotsOwner:
 
     @t.overload
     @classmethod
-    def slots_walk(cls) -> "Iterator[tuple[str, Slot[t.Any]]]": ...
+    def slots_walk(cls) -> "Iterator[tuple[str, BaseSlot[t.Any]]]": ...
 
     @t.overload
     @classmethod
     def slots_walk[EntityType: Entity](
         cls, kind: type[EntityType]
-    ) -> "Iterator[tuple[str, Slot[EntityType]]]": ...
+    ) -> "Iterator[tuple[str, BaseSlot[EntityType]]]": ...
 
     @t.final
     @classmethod
     def slots_walk(
         cls, kind: type[Entity] = Entity
-    ) -> "Iterator[tuple[str, Slot[t.Any]]]":
+    ) -> "Iterator[tuple[str, BaseSlot[t.Any]]]":
         """
         The slots holding ``kind`` under the class and, depth first, under the
         units in it, in declaration order, with their dotted paths
@@ -102,9 +103,11 @@ class SlotsOwner:
         The entity at a dotted path under the owner, created with the units on
         the way if they are not yet.
 
-        :raises LookupError: no slot holding ``kind`` is at the path.
+        :raises LookupError: no slot holding ``kind`` is at the path, or a
+            factory is, which holds no entity.
         """
-        if path not in dict(type(self).slots_walk(kind)):
+        slot = dict(type(self).slots_walk(kind)).get(path)
+        if not isinstance(slot, Slot):
             raise LookupError(f"no slot of {kind.__qualname__} at {path!r}")
         entity: object = self
         for name in path.split("."):
@@ -167,7 +170,7 @@ def check_slots(cls: type[SlotsOwner]) -> None:
             continue
         for name, base_slot in _get_index(base).items():
             slot = inspect.getattr_static(cls, name)
-            if isinstance(slot, Slot) and slot._extends(base_slot):
+            if isinstance(slot, BaseSlot) and slot._extends(base_slot):
                 continue
             raise TypeError(
                 f"{cls.__qualname__}.{name} = {slot!r} does not extend "
@@ -177,16 +180,16 @@ def check_slots(cls: type[SlotsOwner]) -> None:
             )
 
 
-def _get_index(cls: type[SlotsOwner]) -> dict[str, Slot[t.Any]]:
+def _get_index(cls: type[SlotsOwner]) -> dict[str, BaseSlot[t.Any]]:
     # built when the class is created; a subclass whose __init_subclass__
     # forgets super() gets it checked and built on its first walk instead
-    index: dict[str, Slot[t.Any]] | None = vars(cls).get("_slots_index")
+    index: dict[str, BaseSlot[t.Any]] | None = vars(cls).get("_slots_index")
     if index is None:
         check_slots(cls)
         index = {}
         for klass in reversed(cls.__mro__):
             for name, value in vars(klass).items():
-                if isinstance(value, Slot) and name not in index:
+                if isinstance(value, BaseSlot) and name not in index:
                     index[name] = inspect.getattr_static(cls, name)
         cls._slots_index = index
     return index

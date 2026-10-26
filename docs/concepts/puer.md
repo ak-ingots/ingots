@@ -63,6 +63,14 @@ class StorageProject(Project):
 - A slot is never assigned: `project.storage = ...` raises `AttributeError`,
   and mypy rejects it.
 
+An entity for one use at a time, an operation run concurrently, has a
+{py:class}`~ingots.puer.slots.Factory` instead: on the instance it is a
+{py:class}`~ingots.puer.slots.BoundFactory` creating a new entity on every
+call, `project.shop.pay()`, typed by the class it creates, which its `cls`
+gives before creating any. The caller owns what it creates, so the project
+neither walks nor shuts it down; a component or a unit has a slot. A
+subclass customizes a factory as it does a slot.
+
 A project or a unit is a {py:class}`~ingots.puer.slots.owner.SlotsOwner`: its
 `slots_` methods walk its slots, all of them or those holding one kind of
 entity, typed by that kind, and create nothing on the way.

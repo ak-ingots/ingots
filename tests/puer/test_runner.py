@@ -85,7 +85,7 @@ class StoppingTestCase(RunnerTestCase):
             self.assertEqual(BrokenStopRunner().run(), 1)
         self.assertEqual(
             list_messages(logs.output)[0].splitlines()[0],
-            "stopping the workflow failed",
+            "stopping the workflow failed: RuntimeError('boom')",
         )
         self.assertEqual(EVENTS, ["configure", "cancelled", "shut down"])
 

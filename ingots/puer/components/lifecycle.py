@@ -109,7 +109,10 @@ class ComponentsLifecycle:
             for component, result in zip(batch, results):
                 if isinstance(result, BaseException):
                     logger.error(
-                        "%s failed to shut down", _describe(component), exc_info=result
+                        "%s failed to shut down: %r",
+                        _describe(component),
+                        result,
+                        exc_info=result,
                     )
 
     async def _configure(

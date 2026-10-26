@@ -12,6 +12,7 @@ from ingots.puer.cli import CliProject
 
 from .components import Components
 from .logging import Logging
+from .operations import Operations
 from .settings import Settings
 
 
@@ -46,6 +47,7 @@ class Project(CliProject):
     settings = Slot(Settings)
     logging = Slot(Logging)
     components = Slot(Components)
+    operations = Slot(Operations)
 
     @staticmethod
     def _cli_check_config(option: str) -> tuple[str, str]:

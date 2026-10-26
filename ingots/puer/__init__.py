@@ -7,8 +7,10 @@ declared as typed slots and customized by subclassing (ADR 0004).
 
 __all__ = (
     "BaseRunner",
+    "BoundFactory",
     "Component",
     "Entity",
+    "Factory",
     "Project",
     "ProjectState",
     "Slot",
@@ -21,5 +23,5 @@ from .constants import ProjectState
 from .entity import Entity
 from .project import Project
 from .runner import BaseRunner
-from .slots import Slot, SlotsOwner
+from .slots import BoundFactory, Factory, Slot, SlotsOwner
 from .unit import Unit

@@ -334,7 +334,11 @@ class SettingsLoadingTestCase(LoaderTestCase):
         self.assertEqual(code, 1)
         self.assertEqual(
             [record.getMessage() for record in logs.records],
-            ["the command line: HTTP_PORT: 'x' is not an int", "configuring failed"],
+            [
+                "the command line: HTTP_PORT: 'x' is not an int",
+                "configuring failed: ConfigsError('1 wrong override of the configs', "
+                "(\"the command line: HTTP_PORT: 'x' is not an int\",))",
+            ],
         )
         self.assertIn("1 wrong override of the configs", logs.output[1])
 
