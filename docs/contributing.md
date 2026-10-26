@@ -43,8 +43,11 @@ A release is a pull request and a tag:
    collates the changelog, `make cl-build VERSION=X.Y.Z`.
 2. Once it is merged, the tag `vX.Y.Z` on its commit in `main` starts the
    `release` workflow: it checks the tag against the version, runs
-   `make wheel-test` and publishes the tested build to TestPyPI, then to
-   PyPI, through trusted publishing.
+   `make wheel-test` and publishes the tested build to TestPyPI. Then
+   `make index-test` installs the package as TestPyPI gives it, its
+   dependencies from PyPI, checks it is the same file as the build and runs
+   the tests on it for every supported Python; only then does the workflow
+   publish the build to PyPI, through trusted publishing.
 3. The next pull request moves `main` on to the next development version,
    `uv version X.Y.(Z+1).dev0`.
 

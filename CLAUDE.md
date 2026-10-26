@@ -23,6 +23,7 @@ make lint         # black --check, flake8, mypy --strict
 make test         # unittest on the working tree
 make coverage     # the same under coverage; fails below 99%
 make wheel-test   # unittest on the built wheel, PYTHONS="3.14 3.15"
+make index-test VERSION=X.Y.Z  # the tests on the wheel published to TestPyPI
 make format       # black
 make doc          # apidoc, then Sphinx; warnings are errors
 make doc-serve    # doc, then serve docs/build/ [DOC_HOST=0.0.0.0 DOC_PORT=8000]
