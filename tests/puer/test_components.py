@@ -178,7 +178,7 @@ class ShutDownTestCase(TestCase):
                 await project._do_shut_down()
             self.assertEqual(
                 [record.getMessage() for record in logs.records],
-                ["server failed to shut down"],
+                ["server failed to shut down: ConnectionError('the socket is gone')"],
             )
             self.assertFalse(is_configured(server))
             return server

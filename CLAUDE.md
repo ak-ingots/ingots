@@ -7,9 +7,9 @@ repeat what README, `docs/` or the ADRs say: link to them.
 
 `ingots`: statically typed composition of Python applications from reusable
 addons. Rewritten from scratch since 0.30.0: the PUER core, the command line,
-the components and the defaults (settings, logging). A library (ADR 0003),
-Python >= 3.14, part of the [ak-ingots](https://github.com/ak-ingots)
-ecosystem; the meta repository
+the components and the defaults (settings, logging, the components unit,
+operations). A library (ADR 0003), Python >= 3.14, part of the
+[ak-ingots](https://github.com/ak-ingots) ecosystem; the meta repository
 `ingots-libs` holds the ecosystem-wide decisions in `docs/adr/`.
 
 ## Commands

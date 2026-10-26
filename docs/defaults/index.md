@@ -11,4 +11,5 @@ addon
 settings
 logging
 components
+operations
 ```

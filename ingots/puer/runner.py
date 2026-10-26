@@ -135,8 +135,8 @@ class BaseRunner:
                 raise  # the run itself is cancelled, not only the stage
             logger.warning("%s was cancelled", name)
             raise _StageFailed(name) from None
-        except Exception:
-            logger.exception("%s failed", name)
+        except Exception as error:
+            logger.exception("%s failed: %r", name, error)
             raise _StageFailed(name) from None
         finally:
             self._stage_task = self._workflow_task = None
@@ -159,8 +159,8 @@ class BaseRunner:
     async def _stop_workflow_gracefully(self, task: "asyncio.Task[t.Any]") -> None:
         try:
             await self._stop_workflow()
-        except Exception:
-            logger.exception("stopping the workflow failed")
+        except Exception as error:
+            logger.exception("stopping the workflow failed: %r", error)
         _, pending = await asyncio.wait({task}, timeout=self._graceful_timeout)
         if pending:
             logger.warning("the workflow did not stop in time")
