@@ -5,6 +5,9 @@ are the previous implementation.
 
 <!-- towncrier release notes start -->
 
+## [0.32.1] - 2026-10-26
+The changes of 0.32.0, on PyPI: the release of 0.32.0 stopped at the test of the package from TestPyPI, which holds it alone.
+
 ## [0.32.0] - 2026-10-26
 ### Added
 - Added `Factory`, the slot of an entity for one use at a time: on the instance it is a `BoundFactory` creating a new entity on every call, `project.shop.pay()`, and giving its class as `cls`, owned by the caller, so the project neither walks nor shuts it down; a component or a unit takes a `Slot`. Both extend `BaseSlot`, which `slots_iter()` and `slots_walk()` now give; `slots_find_entity()` finds the entities of slots only.
