@@ -5,6 +5,14 @@ are the previous implementation.
 
 <!-- towncrier release notes start -->
 
+## [0.32.0] - 2026-10-26
+### Added
+- Added `Factory`, the slot of an entity for one use at a time: on the instance it is a `BoundFactory` creating a new entity on every call, `project.shop.pay()`, and giving its class as `cls`, owned by the caller, so the project neither walks nor shuts it down; a component or a unit takes a `Slot`. Both extend `BaseSlot`, which `slots_iter()` and `slots_walk()` now give; `slots_find_entity()` finds the entities of slots only.
+- Added the operations of the defaults: a `BaseOperation`, typed by its parameters and its result, declares the `Permissions` it requires, the flags of their domains in a `PermissionFlags` (explicit bits, 31 per domain, for masks stored and sent between services), and runs in `_run()`; the unit of its domain declares it as a `Factory`. `project.operations.create_metadata(caller, run_uid=request_id)` prepares the `OperationMetadata` of a run, and `project.operations.runner.run(project.shop.pay, parameters, metadata)` runs a new instance with the uids of the run and of the caller in the log context; an operation runs others with the same metadata, as one run, and `run_safe()` gives `None` for one that fails, logging it. `operations.checker` lets a `Caller` run each or raises `OperationPermissionsError`; an exception of an operation is raised as it is.
+
+### Changed
+- A failed stage of the runner, a failed stop of the workflow and a component failing to shut down log the `repr()` of the exception in the message, its message and its context, `failed: RuntimeError('boom')`, before the traceback: the `str()` of an exception following the pattern of Ingots holds its message only.
+
 ## [0.31.0] - 2026-10-24
 ### Changed
 - Joining units fails when the class is created instead of losing a source: settings must list in `LOADERS` the loaders of all their bases, and the formats of a file loader may not share an extension.
