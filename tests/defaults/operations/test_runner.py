@@ -231,6 +231,29 @@ class RunTestCase(OperationsTestCase):
         self.assertIsNone(failed.exc_info)
 
 
+class UnitRunTestCase(OperationsTestCase):
+    def test_the_unit_runs_an_operation_with_its_runner(self) -> None:
+        operations = self.project.operations
+        run = operations.run(
+            self.project.shop.pay, PayParameters(5), self.create_metadata(PAYER)
+        )
+        with self.assertLogs(LOGGER, "INFO") as logs:
+            receipt = asyncio.run(run)
+        t.assert_type(receipt, Receipt)
+        self.assertEqual(receipt.amount, 5)
+        self.assertEqual(logs.records[0].getMessage(), "<Pay>: started")
+
+    def test_the_unit_runs_an_operation_safely(self) -> None:
+        operations = self.project.operations
+        run = operations.run_safe(
+            self.project.shop.pay, PayParameters(500), self.create_metadata(PAYER)
+        )
+        with self.assertLogs(LOGGER, "WARNING"):
+            result = asyncio.run(run)
+        t.assert_type(result, Receipt | None)
+        self.assertIsNone(result)
+
+
 class PermissionsCheckTestCase(OperationsTestCase):
     def test_a_caller_without_the_permissions_is_refused(self) -> None:
         run = self.runner.run(

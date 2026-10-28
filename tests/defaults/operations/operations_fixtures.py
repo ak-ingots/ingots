@@ -67,9 +67,9 @@ class Checkout(BaseOperation[tuple[PayParameters, ...], list[Receipt]]):
     async def _run(
         self, parameters: tuple[PayParameters, ...], metadata: OperationMetadata
     ) -> list[Receipt]:
-        runner = self.project.operations.runner
+        operations = self.project.operations
         return [
-            await runner.run(self.project.shop.pay, payment, metadata)
+            await operations.run(self.project.shop.pay, payment, metadata)
             for payment in parameters
         ]
 

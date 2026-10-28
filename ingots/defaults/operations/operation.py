@@ -47,7 +47,7 @@ class BaseOperation[ParametersType, ResultType](Entity):
             pay = Factory(Pay)
 
 
-        receipt = await project.operations.runner.run(
+        receipt = await project.operations.run(
             project.shop.pay,
             parameters,
             project.operations.create_metadata(caller, run_uid=request_id),
