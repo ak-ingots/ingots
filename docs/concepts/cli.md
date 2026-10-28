@@ -39,8 +39,12 @@ $ app storage migrate
 ## The tree
 
 - The tree follows the slots in declaration order; a slot `run_forever` is the
-  sub-command `run-forever`. A plain `Unit` and everything in it stay off the
-  command line, and so does a CLI unit without commands.
+  sub-command `run-forever`. A class names its sub-command with `cli_name`
+  instead, so that a unit can tell its commands from its operations by a
+  prefix: `cmd_get = Slot(GetCommand)` with `cli_name = "get"` is `get`. Two
+  slots of a unit giving the same sub-command are a `TypeError`. A plain
+  `Unit` and everything in it stay off the command line, and so does a CLI
+  unit without commands.
 - Building the command line creates nothing: it walks the classes. Running a
   command creates only the units on its path: `app storage migrate` creates
   `storage` and `migrate`, nothing else.

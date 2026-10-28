@@ -4,7 +4,16 @@ import io
 import typing as t
 import unittest
 
-from ingots.puer.cli import CliParser, CliTree, CommandRunner, CommandRunnerCliArgs
+from ingots.puer.cli import (
+    BaseCommand,
+    CliNode,
+    CliParser,
+    CliProject,
+    CliTree,
+    CliUnit,
+    CommandRunner,
+    CommandRunnerCliArgs,
+)
 
 from ingots.puer import Slot
 
@@ -55,6 +64,46 @@ class CliTreeTestCase(unittest.TestCase):
             ],
         )
 
+    def test_a_class_names_its_sub_command(self) -> None:
+        class Get(BaseCommand):
+            cli_name = "get"
+
+            @t.override
+            async def _run(self) -> None:
+                pass
+
+        class Tags(CliUnit):
+            cli_name = "labels"
+            cmd_get = Slot(Get)
+
+        class TagsProject(ShopProject):
+            unit_tags = Slot(Tags)
+
+        tree = CliParser(TagsProject, CommandRunner).tree
+        self.assertEqual(
+            list_tree(tree)[-2:], ["labels unit_tags", "  get unit_tags.cmd_get"]
+        )
+
+    def test_two_slots_giving_one_sub_command_are_refused(self) -> None:
+        class Get(BaseCommand):
+            cli_name = "get"
+
+            @t.override
+            async def _run(self) -> None:
+                pass
+
+        class Tags(CliUnit):
+            get = Slot(Get)
+            cmd_get = Slot(Get)
+
+        class TagsProject(CliProject):
+            tags = Slot(Tags)
+
+        with self.assertRaisesRegex(
+            TypeError, "Tags: the slots get and cmd_get give the same sub-command 'get'"
+        ):
+            CliParser(TagsProject, CommandRunner)
+
     def test_the_help_lists_the_commands(self) -> None:
         out = io.StringIO()
         with contextlib.redirect_stdout(out), self.assertRaises(SystemExit) as exit:
@@ -82,7 +131,7 @@ class CliTreeTestCase(unittest.TestCase):
     def test_a_runner_takes_its_own_parser(self) -> None:
         class SnakeCaseParser(CliParser):
             @t.override
-            def _get_cli_name(self, slot_name: str) -> str:
+            def _get_cli_name(self, slot_name: str, cls: type[CliNode]) -> str:
                 return slot_name
 
         class Runner(CommandRunner):

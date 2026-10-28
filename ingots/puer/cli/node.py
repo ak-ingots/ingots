@@ -18,8 +18,13 @@ class CliNode:
 
     Option destinations share one namespace: prefix them with the node's
     name (``dest="greet_name"``).
+
+    ``cli_name`` is the sub-command of a unit or a command, taken from its
+    slot when empty: ``cmd_get = Slot(GetCommand)`` with ``cli_name = "get"``
+    is ``get``, not ``cmd-get``.
     """
 
+    cli_name: t.ClassVar[str] = ""
     cli_description: t.ClassVar[str] = ""
 
     @classmethod
