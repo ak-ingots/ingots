@@ -37,11 +37,11 @@ The unit of the domain declares it as a {py:class}`~ingots.puer.Factory`,
 which creates a new instance for every run, so runs go on concurrently,
 each with its own state. A handler, a command or a view only turns the data
 of its protocol into the parameters of one operation or more and their
-results back; the runner of the operations runs them:
+results back; the unit of the operations runs them:
 
 ```python
 metadata = project.operations.create_metadata(caller, run_uid=request_id)
-receipt = await project.operations.runner.run(
+receipt = await project.operations.run(
     project.shop.pay, PayParameters(amount=5), metadata
 )
 ```
@@ -51,14 +51,15 @@ receipt = await project.operations.runner.run(
   the uid, tying the logs of the client and of the server, or creates a new
   one with `create_run_uid()`, random unless a subclass of the unit decides
   otherwise.
-- The runner binds the uid of the run, with the uid of the caller, to the
-  log context: `operation_run_uid` and `operation_caller_uid` are in every
-  log record of the run.
-- An operation runs another through the runner too, passing its `metadata`
-  on: a chain of operations is one run, under one uid, and each operation of
-  it is checked for the caller. An operation running another for someone
+- `operations.run()` hands the operation to `operations.runner`, which a
+  subclass of the unit replaces in its slot. The runner binds the uid of the
+  run, with the uid of the caller, to the log context: `operation_run_uid`
+  and `operation_caller_uid` are in every log record of the run.
+- An operation runs another through `operations.run()` too, passing its
+  `metadata` on: a chain of operations is one run, under one uid, and each
+  operation of it is checked for the caller. An operation running another for someone
   else, the root for one, passes `dataclasses.replace(metadata, caller=...)`.
-- `runner.run_safe()` runs an operation whose failure must not fail its
+- `operations.run_safe()` runs an operation whose failure must not fail its
   caller, an entry of an activity log for one: it gives `None` for the
   result instead and, since nothing handles the exception afterwards, logs
   it at `WARNING` with its traceback. A cancellation goes through.

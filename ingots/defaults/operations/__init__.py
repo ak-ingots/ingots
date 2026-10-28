@@ -19,6 +19,7 @@ __all__ = (
 )
 
 import os
+import typing as t
 
 from ingots.puer import Slot, Unit
 
@@ -29,16 +30,49 @@ from .operation import BaseOperation, OperationMetadata
 from .permissions import PERMISSION_BITS, PermissionFlags, Permissions
 from .runner import OperationsRunner
 
+if t.TYPE_CHECKING:
+    from ingots.puer import BoundFactory
+
 
 class Operations(Unit):
     """
     The base of the operations, not the operations themselves: those live
-    in the units of their domains. ``runner`` runs them, ``checker`` lets
-    their callers run them; a subclass of either in its slot changes how.
+    in the units of their domains. :meth:`run` runs them with ``runner``,
+    ``checker`` lets their callers run them; a subclass of either in its
+    slot changes how.
     """
 
     checker = Slot(PermissionsChecker)
     runner = Slot(OperationsRunner)
+
+    @t.final
+    async def run[ParametersType, ResultType](
+        self,
+        factory: "BoundFactory[BaseOperation[ParametersType, ResultType]]",
+        parameters: ParametersType,
+        metadata: OperationMetadata,
+    ) -> ResultType:
+        """
+        Runs the operation ``factory`` creates, ``project.shop.pay``, with
+        ``parameters`` for the caller of ``metadata``, as
+        :meth:`OperationsRunner.run` does.
+
+        :raises OperationPermissionsError: the caller may not run it.
+        """
+        return await self.runner.run(factory, parameters, metadata)
+
+    @t.final
+    async def run_safe[ParametersType, ResultType](
+        self,
+        factory: "BoundFactory[BaseOperation[ParametersType, ResultType]]",
+        parameters: ParametersType,
+        metadata: OperationMetadata,
+    ) -> ResultType | None:
+        """
+        Runs the operation, giving ``None`` for its result when it fails, as
+        :meth:`OperationsRunner.run_safe` does.
+        """
+        return await self.runner.run_safe(factory, parameters, metadata)
 
     def create_metadata(
         self, caller: Caller, *, run_uid: str | None = None
