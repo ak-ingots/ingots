@@ -88,24 +88,39 @@ class CliParser:
         """
         The tree below a class. A CLI unit without commands is left out, and
         so is everything below a unit that is not a CLI unit.
+
+        :raises TypeError: two slots of the class give the same sub-command.
         """
-        children = []
+        children: dict[str, CliTree] = {}
         for name, slot in owner_cls.slots_iter():
             child_path = (*path, name)
-            cli_name = self._get_cli_name(name)
             if issubclass(slot.cls, BaseCommand):
-                children.append(CliTree(cli_name, child_path, slot.cls))
+                child = CliTree(
+                    self._get_cli_name(name, slot.cls), child_path, slot.cls
+                )
             elif issubclass(slot.cls, CliUnit):
                 grandchildren = self._build_children(slot.cls, child_path)
-                if grandchildren:
-                    children.append(
-                        CliTree(cli_name, child_path, slot.cls, grandchildren)
-                    )
-        return tuple(children)
+                if not grandchildren:
+                    continue
+                cli_name = self._get_cli_name(name, slot.cls)
+                child = CliTree(cli_name, child_path, slot.cls, grandchildren)
+            else:
+                continue
+            if child.name in children:
+                raise TypeError(
+                    f"{owner_cls.__qualname__}: the slots "
+                    f"{children[child.name].path[-1]} and {name} give the same "
+                    f"sub-command {child.name!r}"
+                )
+            children[child.name] = child
+        return tuple(children.values())
 
-    def _get_cli_name(self, slot_name: str) -> str:
-        """The sub-command of a slot: its name, ``-`` for ``_``."""
-        return slot_name.replace("_", "-")
+    def _get_cli_name(self, slot_name: str, cls: type[CliNode]) -> str:
+        """
+        The sub-command of a slot: the ``cli_name`` of its class, else its
+        name with ``-`` for ``_``.
+        """
+        return cls.cli_name or slot_name.replace("_", "-")
 
     def _get_description(self, cls: type) -> str:
         """The description of a node: its ``cli_description``."""

@@ -8,6 +8,7 @@ the command chosen on the command line, creating only what lies on its path.
 
 __all__ = (
     "BaseCommand",
+    "CliNode",
     "CliParser",
     "CliProject",
     "CliTree",
@@ -18,6 +19,7 @@ __all__ = (
 )
 
 from .command import BaseCommand
+from .node import CliNode
 from .parser import CliParser, CliTree, ParsedCommandLine
 from .project import CliProject
 from .runner import CommandRunner, CommandRunnerCliArgs
