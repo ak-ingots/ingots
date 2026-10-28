@@ -324,7 +324,7 @@ wheels = [
 
 [[package]]
 name = "ingots"
-version = "0.32.2.dev0"
+version = "0.32.2"
 source = { editable = "." }
 
 [package.dev-dependencies]
