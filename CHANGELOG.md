@@ -5,6 +5,12 @@ are the previous implementation.
 
 <!-- towncrier release notes start -->
 
+## [0.32.2] - 2026-10-28
+### Added
+- A command or a CLI unit names its sub-command with `cli_name`, taken from
+  its slot when empty; two slots of a unit giving the same sub-command are
+  refused with a `TypeError`.
+
 ## [0.32.1] - 2026-10-26
 The changes of 0.32.0, on PyPI: the release of 0.32.0 stopped at the test of the package from TestPyPI, which holds it alone.
 
