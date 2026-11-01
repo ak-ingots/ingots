@@ -5,6 +5,11 @@ are the previous implementation.
 
 <!-- towncrier release notes start -->
 
+## [0.32.3] - 2026-11-01
+### Added
+- `Operations.run()` and `run_safe()` run an operation with the runner of
+  the unit: `project.operations.run(project.shop.pay, parameters, metadata)`.
+
 ## [0.32.2] - 2026-10-28
 ### Added
 - A command or a CLI unit names its sub-command with `cli_name`, taken from
