@@ -20,8 +20,8 @@ import sys
 import typing as t
 
 from ingots.defaults import Project
-from ingots.defaults.logging import Logging, configure_startup_logging
-from ingots.defaults.settings import Settings
+from ingots.defaults.logging import LoggingUnit, configure_startup_logging
+from ingots.defaults.settings import SettingsUnit
 from ingots.defaults.settings.configs import (
     Configs,
     IntConfig,
@@ -40,11 +40,11 @@ class HttpConfigs(Configs):
     HTTP_LOGGING_LEVEL = LogLevelConfig(logging.INFO)
 
 
-class HttpSettings(Settings):
+class HttpSettingsUnit(SettingsUnit):
     configs = Slot(HttpConfigs)
 
 
-class HttpLogging(Logging):
+class HttpLoggingUnit(LoggingUnit):
     project: "HttpProject"
 
     def build_loggers(self) -> dict[str, dict[str, t.Any]]:
@@ -70,15 +70,15 @@ class ServeCommand(BaseCommand):
         self._stopped.set()
 
 
-class Http(CliUnit):
+class HttpUnit(CliUnit):
     cli_description = "The HTTP server."
     serve = Slot(ServeCommand)
 
 
 class HttpProject(Project):
-    settings = Slot(HttpSettings)
-    logging = Slot(HttpLogging)
-    http = Slot(Http)
+    settings = Slot(HttpSettingsUnit)
+    logging = Slot(HttpLoggingUnit)
+    http = Slot(HttpUnit)
 
 
 def main() -> None:
@@ -91,14 +91,14 @@ Level by level:
 - **The configs.** `HttpConfigs` extends the configs of the defaults with
   those of the domain, prefixed with the name of the domain, not of the
   package (`HTTP_*`, as `MYSQL_*` or `REDIS_*`), the logging configs of
-  the domain among them: `HTTP_LOGGING_LEVEL`. `HttpSettings` narrows the slot
+  the domain among them: `HTTP_LOGGING_LEVEL`. `HttpSettingsUnit` narrows the slot
   of the settings to them; see {doc}`settings`.
-- **The logging.** `HttpLogging` adds the addon's logger to the
+- **The logging.** `HttpLoggingUnit` adds the addon's logger to the
   configuration, read from its configs; formatters, filters and handlers
   are extended the same way, each part calling `super()`. Its `project`
   annotation narrows the back-reference, so the configs of the domain are
   typed. See {doc}`logging`.
-- **The domain.** `Http` is a unit of the addon's own, with its commands;
+- **The domain.** `HttpUnit` is a unit of the addon's own, with its commands;
   every entity reaches the configs through the project.
 - **The project.** `HttpProject` takes the three slots. It is what an
   application inherits from, and runs the addon on its own: `main()` and
@@ -130,17 +130,17 @@ both addons meet through `super()`:
 class AppConfigs(HttpConfigs, DbConfigs): ...
 
 
-class AppSettings(HttpSettings, DbSettings):
+class AppSettingsUnit(HttpSettingsUnit, DbSettingsUnit):
     configs = Slot(AppConfigs)
 
 
-class AppLogging(HttpLogging, DbLogging): ...
+class AppLoggingUnit(HttpLoggingUnit, DbLoggingUnit): ...
 
 
 class AppProject(HttpProject, DbProject):
     env_configs_prefix = "APP"
-    settings = Slot(AppSettings)
-    logging = Slot(AppLogging)
+    settings = Slot(AppSettingsUnit)
+    logging = Slot(AppLoggingUnit)
 ```
 
 A slot that only one addon declares, `http`, is inherited as it is.

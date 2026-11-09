@@ -19,32 +19,25 @@ logger = logging.getLogger(__name__)
 class PermissionsChecker(Entity):
     """
     Whether a caller may run an operation: the root runs any, another
-    caller needs the :attr:`~BaseOperation.PERMISSIONS` of the operation. A
-    subclass in the slot ``checker`` decides otherwise in :meth:`_is_allowed`:
-    asking a service for one. It checks the class before the runner creates
-    an instance: a refused caller costs no operation.
+    caller needs what the operation requires, its
+    :meth:`~BaseOperation.get_permissions`, which the runner asks it and
+    passes on. A subclass in the slot ``checker`` decides otherwise in
+    :meth:`_is_allowed`: asking a service for one.
     """
 
     @t.final
     async def check(
         self,
         operation_cls: "type[BaseOperation[t.Any, t.Any]]",
+        required: "Permissions",
         metadata: "OperationMetadata",
     ) -> None:
         """
-        Lets the caller of ``metadata`` run an ``operation_cls``, or refuses
-        it.
+        Lets the caller of ``metadata`` run an ``operation_cls`` requiring
+        ``required``, or refuses it.
 
         :raises OperationPermissionsError: the caller may not run it.
-        :raises TypeError: the operation declares no permissions.
         """
-        try:
-            required = operation_cls.PERMISSIONS
-        except AttributeError:
-            raise TypeError(
-                f"{operation_cls.__qualname__} declares no PERMISSIONS: "
-                f"Permissions() for none"
-            ) from None
         if metadata.caller.is_root:
             return
         if not await self._is_allowed(operation_cls, required, metadata):

@@ -25,7 +25,7 @@ class GreetArgs:
     name: str
 
 
-class Greet(BaseCommand):
+class GreetCommand(BaseCommand):
     cli_description = "Greets someone.\n\nPolitely."
     cli_args: GreetArgs
     project: "ShopProject"
@@ -51,10 +51,10 @@ class GreetingsArgs:
     loud: bool
 
 
-class Greetings(CliUnit):
-    cli_description = "Greetings."
+class GreetingsUnit(CliUnit):
+    cli_description = "GreetingsUnit."
     cli_args: GreetingsArgs
-    greet = Slot(Greet)
+    greet = Slot(GreetCommand)
 
     @t.override
     @classmethod
@@ -67,7 +67,7 @@ class Greetings(CliUnit):
         return GreetingsArgs(namespace.greetings_loud)
 
 
-class Serve(BaseCommand):
+class ServeCommand(BaseCommand):
     """Runs until stopped: sends itself SIGINT once it is serving."""
 
     cli_description = "Serves forever."
@@ -86,7 +86,7 @@ class Serve(BaseCommand):
         self._stopped.set()
 
 
-class Stubborn(BaseCommand):
+class StubbornCommand(BaseCommand):
     """Ignores stopping: the runner has to cancel it."""
 
     @t.override
@@ -99,34 +99,34 @@ class Stubborn(BaseCommand):
             raise
 
 
-class Server(CliUnit):
-    serve = Slot(Serve)
-    run_stubborn = Slot(Stubborn)
+class ServerUnit(CliUnit):
+    serve = Slot(ServeCommand)
+    run_stubborn = Slot(StubbornCommand)
 
 
-class Fail(BaseCommand):
+class FailCommand(BaseCommand):
     @t.override
     async def _run(self) -> None:
         raise RuntimeError("boom")
 
 
-class Hidden(Unit):
+class HiddenUnit(Unit):
     """Not a CLI unit: its command stays off the command line."""
 
-    greet = Slot(Greet)
+    greet = Slot(GreetCommand)
 
 
-class Empty(CliUnit):
+class EmptyUnit(CliUnit):
     """A CLI unit without commands: left out of the command line."""
 
 
 class ShopProject(CliProject):
     cli_description = "The shop."
-    greetings = Slot(Greetings)
-    server = Slot(Server)
-    fail = Slot(Fail)
-    hidden = Slot(Hidden)
-    empty = Slot(Empty)
+    greetings = Slot(GreetingsUnit)
+    server = Slot(ServerUnit)
+    fail = Slot(FailCommand)
+    hidden = Slot(HiddenUnit)
+    empty = Slot(EmptyUnit)
 
     @t.override
     async def _configure(self) -> None:
@@ -139,11 +139,11 @@ class ShopProject(CliProject):
 
 
 class NoCommandsProject(CliProject):
-    empty = Slot(Empty)
-    hidden = Slot(Hidden)
+    empty = Slot(EmptyUnit)
+    hidden = Slot(HiddenUnit)
 
 
 class PlainProject(Project):
     """Not a CLI project: adds no options, gets no arguments."""
 
-    greetings = Slot(Greetings)
+    greetings = Slot(GreetingsUnit)

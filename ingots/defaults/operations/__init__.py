@@ -8,10 +8,11 @@ __all__ = (
     "PERMISSION_BITS",
     "ROOT_CALLER",
     "BaseOperation",
+    "BaseOperationCommand",
     "Caller",
     "OperationMetadata",
     "OperationPermissionsError",
-    "Operations",
+    "OperationsUnit",
     "OperationsRunner",
     "PermissionFlags",
     "Permissions",
@@ -25,6 +26,7 @@ from ingots.puer import Slot, Unit
 
 from .caller import ANONYMOUS_CALLER, ROOT_CALLER, Caller
 from .checker import PermissionsChecker
+from .commands import BaseOperationCommand
 from .errors import OperationPermissionsError
 from .operation import BaseOperation, OperationMetadata
 from .permissions import PERMISSION_BITS, PermissionFlags, Permissions
@@ -34,7 +36,7 @@ if t.TYPE_CHECKING:
     from ingots.puer import BoundFactory
 
 
-class Operations(Unit):
+class OperationsUnit(Unit):
     """
     The base of the operations, not the operations themselves: those live
     in the units of their domains. :meth:`run` runs them with ``runner``,

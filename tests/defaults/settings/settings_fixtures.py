@@ -6,7 +6,7 @@ import typing as t
 from dataclasses import dataclass
 
 from ingots.defaults import Project, ProjectCliArgs
-from ingots.defaults.settings import Settings
+from ingots.defaults.settings import SettingsUnit
 from ingots.defaults.settings.loaders import BaseLoader, Overrides
 from ingots.defaults.settings.configs import (
     BoolConfig,
@@ -32,13 +32,13 @@ class HttpConfigs(Configs):
     HTTP_TOKEN = SecureStrConfig("secret")
 
 
-class HttpSettings(Settings):
+class HttpSettingsUnit(SettingsUnit):
     configs = Slot(HttpConfigs)
 
 
 class HttpProject(Project):
     env_configs_prefix = "TEST"
-    settings = Slot(HttpSettings)
+    settings = Slot(HttpSettingsUnit)
 
 
 class DbConfigs(Configs):
@@ -46,25 +46,25 @@ class DbConfigs(Configs):
     DB_MODE = EnumConfig(Mode.SAFE)
 
 
-class DbSettings(Settings):
+class DbSettingsUnit(SettingsUnit):
     configs = Slot(DbConfigs)
 
 
 class DbProject(Project):
     env_configs_prefix = "TEST"
-    settings = Slot(DbSettings)
+    settings = Slot(DbSettingsUnit)
 
 
 class AppConfigs(HttpConfigs, DbConfigs):
     pass
 
 
-class AppSettings(HttpSettings, DbSettings):
+class AppSettingsUnit(HttpSettingsUnit, DbSettingsUnit):
     configs = Slot(AppConfigs)
 
 
 class AppProject(HttpProject, DbProject):
-    settings = Slot(AppSettings)
+    settings = Slot(AppSettingsUnit)
 
 
 class VaultLoader(BaseLoader):
@@ -75,25 +75,25 @@ class VaultLoader(BaseLoader):
         return [Overrides("the vault", {"HTTP_TOKEN": "from the vault"})]
 
 
-class VaultSettings(AppSettings):
-    LOADERS = (*AppSettings.LOADERS, "vault_loader")
+class VaultSettingsUnit(AppSettingsUnit):
+    LOADERS = (*AppSettingsUnit.LOADERS, "vault_loader")
     vault_loader = Slot(VaultLoader)
 
 
 class VaultProject(AppProject):
-    settings = Slot(VaultSettings)
+    settings = Slot(VaultSettingsUnit)
 
 
 class StrictConfigs(AppConfigs):
     IS_STRICT_CONFIGS = BoolConfig(True)
 
 
-class StrictSettings(AppSettings):
+class StrictSettingsUnit(AppSettingsUnit):
     configs = Slot(StrictConfigs)
 
 
 class StrictProject(AppProject):
-    settings = Slot(StrictSettings)
+    settings = Slot(StrictSettingsUnit)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

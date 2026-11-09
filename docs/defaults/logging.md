@@ -30,7 +30,7 @@ application customizes the logging at two points: the configs, in its
 configs class, and the parts of the configuration, in its logging unit.
 
 Configuring the project configures the settings, then the
-{py:class}`~ingots.defaults.logging.Logging` unit, which applies a
+{py:class}`~ingots.defaults.logging.LoggingUnit` unit, which applies a
 {py:func}`logging.config.dictConfig` built from the `LOGGING_*` configs of
 {py:class}`~ingots.defaults.settings.configs.entity.Configs`:
 
@@ -48,14 +48,14 @@ subclass of the unit extends a part of it, `build_formatters()`,
 slot of the project:
 
 ```python
-class AuditLogging(Logging):
+class AuditLoggingUnit(LoggingUnit):
     def build_loggers(self) -> dict[str, dict[str, t.Any]]:
         audit = {"level": "WARNING", "handlers": ["default"], "propagate": False}
         return {**super().build_loggers(), "audit": audit}
 
 
 class AppProject(Project):
-    logging = Slot(AuditLogging)
+    logging = Slot(AuditLoggingUnit)
 ```
 
 The logging is global to the process: configuring a second project in it

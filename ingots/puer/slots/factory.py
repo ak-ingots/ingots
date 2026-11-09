@@ -19,12 +19,13 @@ class Factory[EntityType: Entity](BaseSlot[EntityType]):
     concurrently, a handler of one request. On the instance the slot is a
     :class:`BoundFactory` creating one on the owner's project, on the class
     the slot itself; a subclass customizes it as a :class:`Slot`:
-    ``pay = Factory(LoggedPay)`` where ``LoggedPay`` extends ``Pay``. Usage::
+    ``pay = Factory(LoggedPayOperation)`` where ``LoggedPayOperation``
+    extends ``PayOperation``. Usage::
 
-        class Shop(Unit):
-            pay = Factory(Pay)
+        class ShopUnit(Unit):
+            pay = Factory(PayOperation)
 
-        pay = project.shop.pay()  # a new Pay
+        pay = project.shop.pay()  # a new PayOperation
 
     The caller owns what it creates: the owner keeps nothing, so the
     project neither walks nor shuts it down. A component, which the

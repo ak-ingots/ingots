@@ -264,18 +264,18 @@ class LoggedRun(Run):
     pass
 
 
-class Runs(Unit):
+class RunsUnit(Unit):
     run = Factory(Run)
     common = Slot(Common)
 
 
 class RunsProject(Project):
-    runs = Slot(Runs)
+    runs = Slot(RunsUnit)
 
 
 class FactoryTestCase(unittest.TestCase):
     def test_class_access_returns_the_factory(self) -> None:
-        factory = Runs.run
+        factory = RunsUnit.run
         t.assert_type(factory, Factory[Run])
         self.assertIs(factory.cls, Run)
         self.assertEqual(repr(factory), "Factory(Run)")
@@ -308,7 +308,7 @@ class FactoryTestCase(unittest.TestCase):
             p.slots_find_path(p.runs.run())
 
     def test_a_factory_is_customized_by_a_subclass(self) -> None:
-        class AppRuns(Runs):
+        class AppRuns(RunsUnit):
             run = Factory(LoggedRun)
 
         p = RunsProject()
@@ -317,19 +317,19 @@ class FactoryTestCase(unittest.TestCase):
     def test_a_factory_and_a_slot_do_not_replace_each_other(self) -> None:
         with self.assertRaisesRegex(TypeError, r"ToSlot\.run = Slot\(Run\)"):
 
-            class ToSlot(Runs):
+            class ToSlot(RunsUnit):
                 run = Slot(Run)  # type: ignore[assignment]
 
         with self.assertRaisesRegex(TypeError, r"ToFactory\.common = Factory"):
 
-            class ToFactory(Runs):
+            class ToFactory(RunsUnit):
                 common = Factory(Common)  # type: ignore[assignment]
 
     def test_a_component_or_a_unit_takes_a_slot(self) -> None:
         class Server(Component):
             pass
 
-        for cls in (Server, Runs):
+        for cls in (Server, RunsUnit):
             with self.subTest(cls), self.assertRaisesRegex(TypeError, "has a Slot"):
                 Factory(cls)
 

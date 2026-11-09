@@ -10,10 +10,10 @@ from pathlib import Path
 from ingots.puer import Slot
 from ingots.puer.cli import CliProject
 
-from .components import Components
-from .logging import Logging
-from .operations import Operations
-from .settings import Settings
+from .components import ComponentsUnit
+from .logging import LoggingUnit
+from .operations import OperationsUnit
+from .settings import SettingsUnit
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -44,10 +44,10 @@ class Project(CliProject):
     env_configs_prefix: t.ClassVar[str] = "INGOT"
 
     cli_args: ProjectCliArgs
-    settings = Slot(Settings)
-    logging = Slot(Logging)
-    components = Slot(Components)
-    operations = Slot(Operations)
+    settings = Slot(SettingsUnit)
+    logging = Slot(LoggingUnit)
+    components = Slot(ComponentsUnit)
+    operations = Slot(OperationsUnit)
 
     @staticmethod
     def _cli_check_config(option: str) -> tuple[str, str]:

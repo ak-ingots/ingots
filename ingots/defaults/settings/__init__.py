@@ -1,6 +1,6 @@
 """The settings: the unit of the configs and what serves them."""
 
-__all__ = ("ConfigsError", "Settings")
+__all__ = ("ConfigsError", "SettingsUnit")
 
 import inspect
 import logging
@@ -21,7 +21,7 @@ if t.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class Settings(CliUnit):
+class SettingsUnit(CliUnit):
     """
     Holds the configs of the project and everything serving them; on the
     command line, the ``settings`` commands.
@@ -37,7 +37,7 @@ class Settings(CliUnit):
 
     An addon with configs of its own narrows :attr:`configs` in a subclass:
     ``configs = Slot(HttpConfigs)``; one with another source adds a loader
-    slot and its name to :attr:`LOADERS`. Settings joining such addons list
+    slot and its name to :attr:`LOADERS`. A settings unit joining such addons lists
     the loaders of all their bases in :attr:`LOADERS`, in the order they
     choose: one left out fails the class.
     """
@@ -147,10 +147,10 @@ class ConfigsError(Exception):
         return t.cast(str, self.args[0])
 
 
-def check_loader_slots(cls: type[Settings]) -> None:
+def check_loader_slots(cls: type[SettingsUnit]) -> None:
     """
     Internal, run when the class is created: every name of
-    :attr:`Settings.LOADERS` is a slot of a loader.
+    :attr:`SettingsUnit.LOADERS` is a slot of a loader.
     """
     for name in cls.LOADERS:
         slot = inspect.getattr_static(cls, name, None)
@@ -160,9 +160,9 @@ def check_loader_slots(cls: type[Settings]) -> None:
             )
 
 
-def check_base_loaders(cls: type[Settings]) -> None:
+def check_base_loaders(cls: type[SettingsUnit]) -> None:
     """
-    Internal, run when the class is created: :attr:`Settings.LOADERS` keeps
+    Internal, run when the class is created: :attr:`SettingsUnit.LOADERS` keeps
     the loaders of every direct base, so joined settings lose no source.
     """
     for base in cls.__bases__:

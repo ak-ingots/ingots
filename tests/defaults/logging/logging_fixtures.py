@@ -3,9 +3,9 @@
 import typing as t
 
 from ingots.defaults import Project
-from ingots.defaults.logging import Logging
+from ingots.defaults.logging import LoggingUnit
 from ingots.defaults.logging.context import LogContextVar
-from ingots.defaults.settings import Settings
+from ingots.defaults.settings import SettingsUnit
 from ingots.defaults.settings.configs import BoolConfig, Configs
 from ingots.puer import Slot
 
@@ -17,11 +17,11 @@ class QuietConfigs(Configs):
     IS_PRINT_CONFIGS = BoolConfig(False)
 
 
-class QuietSettings(Settings):
+class QuietSettingsUnit(SettingsUnit):
     configs = Slot(QuietConfigs)
 
 
-class AuditLogging(Logging):
+class AuditLoggingUnit(LoggingUnit):
     """Adds a logger of its own, on the default handler."""
 
     @t.override
@@ -32,5 +32,5 @@ class AuditLogging(Logging):
 
 class LoggingProject(Project):
     env_configs_prefix = "TEST"
-    settings = Slot(QuietSettings)
-    logging = Slot(AuditLogging)
+    settings = Slot(QuietSettingsUnit)
+    logging = Slot(AuditLoggingUnit)

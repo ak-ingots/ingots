@@ -22,9 +22,9 @@ from tests import TestCase
 from .cli_fixtures import (
     EVENTS,
     PROJECTS,
-    Greet,
+    GreetCommand,
     GreetArgs,
-    Greetings,
+    GreetingsUnit,
     GreetingsArgs,
     NoCommandsProject,
     PlainProject,
@@ -65,19 +65,19 @@ class CliTreeTestCase(unittest.TestCase):
         )
 
     def test_a_class_names_its_sub_command(self) -> None:
-        class Get(BaseCommand):
+        class GetCommand(BaseCommand):
             cli_name = "get"
 
             @t.override
             async def _run(self) -> None:
                 pass
 
-        class Tags(CliUnit):
+        class TagsUnit(CliUnit):
             cli_name = "labels"
-            cmd_get = Slot(Get)
+            cmd_get = Slot(GetCommand)
 
         class TagsProject(ShopProject):
-            unit_tags = Slot(Tags)
+            unit_tags = Slot(TagsUnit)
 
         tree = CliParser(TagsProject, CommandRunner).tree
         self.assertEqual(
@@ -85,22 +85,23 @@ class CliTreeTestCase(unittest.TestCase):
         )
 
     def test_two_slots_giving_one_sub_command_are_refused(self) -> None:
-        class Get(BaseCommand):
+        class GetCommand(BaseCommand):
             cli_name = "get"
 
             @t.override
             async def _run(self) -> None:
                 pass
 
-        class Tags(CliUnit):
-            get = Slot(Get)
-            cmd_get = Slot(Get)
+        class TagsUnit(CliUnit):
+            get = Slot(GetCommand)
+            cmd_get = Slot(GetCommand)
 
         class TagsProject(CliProject):
-            tags = Slot(Tags)
+            tags = Slot(TagsUnit)
 
         with self.assertRaisesRegex(
-            TypeError, "Tags: the slots get and cmd_get give the same sub-command 'get'"
+            TypeError,
+            "TagsUnit: the slots get and cmd_get give the same sub-command 'get'",
         ):
             CliParser(TagsProject, CommandRunner)
 
@@ -163,7 +164,7 @@ class FiniteCommandTestCase(RunnerTestCase):
     def test_every_node_on_the_path_gets_its_arguments(self) -> None:
         received: list[object] = []
 
-        class Recorder(Greet):
+        class Recorder(GreetCommand):
             @t.override
             async def _run(self) -> None:
                 project = self.project
@@ -171,7 +172,7 @@ class FiniteCommandTestCase(RunnerTestCase):
                     [project.cli_args, project.greetings.cli_args, self.cli_args]
                 )
 
-        class RecordingGreetings(Greetings):
+        class RecordingGreetings(GreetingsUnit):
             greet = Slot(Recorder)
 
         class Project(ShopProject):

@@ -41,7 +41,7 @@ class InsufficientFunds(Exception):
     pass
 
 
-class Pay(BaseOperation[PayParameters, Receipt]):
+class PayOperation(BaseOperation[PayParameters, Receipt]):
     PERMISSIONS = Permissions(Shop.PAY)
 
     @t.override
@@ -58,7 +58,7 @@ class Pay(BaseOperation[PayParameters, Receipt]):
         )
 
 
-class Checkout(BaseOperation[tuple[PayParameters, ...], list[Receipt]]):
+class CheckoutOperation(BaseOperation[tuple[PayParameters, ...], list[Receipt]]):
     PERMISSIONS = Permissions()
 
     project: "ShopProject"
@@ -74,7 +74,7 @@ class Checkout(BaseOperation[tuple[PayParameters, ...], list[Receipt]]):
         ]
 
 
-class Ping(BaseOperation[None, str]):
+class PingOperation(BaseOperation[None, str]):
     PERMISSIONS = Permissions()
 
     @t.override
@@ -82,7 +82,7 @@ class Ping(BaseOperation[None, str]):
         return "pong"
 
 
-class Sleep(BaseOperation[None, None]):
+class SleepOperation(BaseOperation[None, None]):
     PERMISSIONS = Permissions()
 
     @t.override
@@ -90,18 +90,11 @@ class Sleep(BaseOperation[None, None]):
         await asyncio.sleep(10)
 
 
-class Undeclared(BaseOperation[None, None]):
-    @t.override
-    async def _run(self, parameters: None, metadata: OperationMetadata) -> None:
-        pass
-
-
 class ShopUnit(Unit):
-    pay = Factory(Pay)
-    checkout = Factory(Checkout)
-    ping = Factory(Ping)
-    sleep = Factory(Sleep)
-    undeclared = Factory(Undeclared)
+    pay = Factory(PayOperation)
+    checkout = Factory(CheckoutOperation)
+    ping = Factory(PingOperation)
+    sleep = Factory(SleepOperation)
 
 
 class ShopProject(Project):

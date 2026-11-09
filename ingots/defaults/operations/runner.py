@@ -27,9 +27,11 @@ class OperationsRunner(Entity):
     """
     Runs an operation from its factory, a new instance each time, so that
     runs go on concurrently: the uid of the run and of the caller go into
-    the log records, the checker of the project lets the caller run its
-    class or refuses, then the factory creates it and the result comes
-    back. An operation runs another through
+    the log records, the factory creates the operation, the checker of the
+    project lets the caller run it or refuses, by what the operation
+    requires, its :meth:`~BaseOperation.get_permissions`, then the result
+    comes back. A refused caller costs an instance, of nothing but a weak
+    reference to the project. An operation runs another through
     the runner too, passing its metadata on: the chain logs one run uid,
     and the checker checks the caller for each operation. An exception of
     the operation is raised as it is, logged by its ``repr()``, its message
@@ -53,8 +55,10 @@ class OperationsRunner(Entity):
         :raises OperationPermissionsError: the caller may not run it.
         """
         with RUN_UID.bind(metadata.run_uid), CALLER_UID.bind(metadata.caller.uid):
-            await self.project.operations.checker.check(factory.cls, metadata)
             operation = factory()
+            await self.project.operations.checker.check(
+                factory.cls, operation.get_permissions(), metadata
+            )
             logger.info("%r: started", operation)
             try:
                 result = await operation._run(parameters, metadata)

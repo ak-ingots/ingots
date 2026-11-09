@@ -1,6 +1,6 @@
 """The logging: the unit configuring the logging of the process."""
 
-__all__ = ("Logging", "configure_startup_logging")
+__all__ = ("LoggingUnit", "configure_startup_logging")
 
 import logging
 import logging.config
@@ -22,7 +22,7 @@ if t.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class Logging(CliUnit):
+class LoggingUnit(CliUnit):
     """
     Configures the logging from the ``LOGGING_*`` configs, once the settings
     are configured; on the command line, the ``logging`` commands.

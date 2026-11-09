@@ -15,7 +15,7 @@ level:
 
 ```python
 from ingots.defaults import Project
-from ingots.defaults.settings import Settings
+from ingots.defaults.settings import SettingsUnit
 from ingots.defaults.settings.configs import Configs, IntConfig, SecureStrConfig
 from ingots.puer import Slot
 
@@ -25,12 +25,12 @@ class HttpConfigs(Configs):
     HTTP_TOKEN = SecureStrConfig("")
 
 
-class HttpSettings(Settings):
+class HttpSettingsUnit(SettingsUnit):
     configs = Slot(HttpConfigs)
 
 
 class HttpProject(Project):
-    settings = Slot(HttpSettings)
+    settings = Slot(HttpSettingsUnit)
 ```
 
 and reads them through the project: `self.project.settings.configs.HTTP_PORT`
@@ -41,12 +41,12 @@ explicitly, as every slot (ADR 0004):
 class AppConfigs(HttpConfigs, DbConfigs): ...
 
 
-class AppSettings(HttpSettings, DbSettings):
+class AppSettingsUnit(HttpSettingsUnit, DbSettingsUnit):
     configs = Slot(AppConfigs)
 
 
 class AppProject(HttpProject, DbProject):
-    settings = Slot(AppSettings)
+    settings = Slot(AppSettingsUnit)
 ```
 
 - The types: `BoolConfig`, `IntConfig`, `FloatConfig`, `DecimalConfig`,
@@ -69,7 +69,7 @@ class AppProject(HttpProject, DbProject):
 ## Read-only configs
 
 The configs are written once. Configuring the
-{py:class}`~ingots.defaults.settings.Settings` unit applies the overrides
+{py:class}`~ingots.defaults.settings.SettingsUnit` unit applies the overrides
 loaded for them and freezes them; from then on the configs are what the
 project started with, and what it printed.
 
@@ -85,7 +85,7 @@ project started with, and what it printed.
 
 Configuring the settings runs in two phases.
 
-1. The loaders of `Settings.LOADERS` collect the overrides of their
+1. The loaders of `SettingsUnit.LOADERS` collect the overrides of their
    sources: names to data as the source has it, a string or a JSON value.
    They apply in this order, the later winning:
    - `--configs-file PATH`, an INI file (the options of every section) or a
@@ -127,8 +127,8 @@ class VaultLoader(BaseLoader):
         return [Overrides("the vault", await read_secrets())]
 
 
-class VaultSettings(Settings):
-    LOADERS = (*Settings.LOADERS, "vault_loader")
+class VaultSettingsUnit(SettingsUnit):
+    LOADERS = (*SettingsUnit.LOADERS, "vault_loader")
     vault_loader = Slot(VaultLoader)
 ```
 
@@ -159,7 +159,7 @@ class YamlFileLoader(FileLoader):
     yaml_format = Slot(YamlFormat)
 
 
-class YamlSettings(Settings):
+class YamlSettingsUnit(SettingsUnit):
     file_loader = Slot(YamlFileLoader)
 ```
 
