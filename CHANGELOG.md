@@ -5,6 +5,25 @@ are the previous implementation.
 
 <!-- towncrier release notes start -->
 
+## [0.33.0] - 2026-11-09
+### Added
+- `BaseOperationCommand` runs an operation from the command line: a command
+  gives it in `_get_operation()` and calls `run_operation()`, which gives the
+  result; the caller is the root unless `_get_caller()` says otherwise.
+
+### Changed
+- The units that only group others are named by their kind, as ADR 0014 of
+  the ecosystem says: `Settings` is `SettingsUnit`, `Logging` `LoggingUnit`,
+  `Components` `ComponentsUnit` and `Operations` `OperationsUnit`; the names
+  of their slots stay.
+- What a caller needs to run an operation is its `get_permissions()`: the hook
+  `_get_permissions()` gives the constant `PERMISSIONS` by default, and an
+  operation whose permissions depend on its project overrides it. The runner
+  creates the operation, asks it and gives the permissions to the checker:
+  `PermissionsChecker.check(operation_cls, required, metadata)`. An operation
+  declaring neither raises `TypeError` when its class is created, not on its
+  run; a refused caller now costs an instance of the operation, not run.
+
 ## [0.32.3] - 2026-11-01
 ### Added
 - `Operations.run()` and `run_safe()` run an operation with the runner of
