@@ -34,12 +34,12 @@ class Client(Component):
     SHUTDOWN_ORDER = 8
 
 
-class Http(Unit):
+class HttpUnit(Unit):
     server = Slot(Server)
     client = Slot(Client)
 
 
 class ComponentsProject(Project):
     env_configs_prefix = "TEST"
-    http = Slot(Http)
+    http = Slot(HttpUnit)
     admin = Slot(Admin)

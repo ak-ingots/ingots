@@ -6,8 +6,9 @@ permissions of their caller. The unit holds what every operation needs, not
 the operations themselves: those live in the units of their domains.
 
 An operation is a {py:class}`~ingots.defaults.operations.BaseOperation`,
-typed by its parameters and its result. It declares the permissions a caller
-needs and runs in the hook `_run()`:
+typed by its parameters and its result, named `*Operation` (ADR 0014 of the
+ecosystem). It declares the permissions a caller needs and runs in the hook
+`_run()`:
 
 ```python
 import typing as t
@@ -21,7 +22,7 @@ class Shop(PermissionFlags, domain="shop"):
     REFUND = 1 << 1
 
 
-class Pay(BaseOperation[PayParameters, Receipt]):
+class PayOperation(BaseOperation[PayParameters, Receipt]):
     PERMISSIONS = Permissions(Shop.PAY)
 
     @t.override
@@ -30,7 +31,7 @@ class Pay(BaseOperation[PayParameters, Receipt]):
 
 
 class ShopUnit(Unit):
-    pay = Factory(Pay)
+    pay = Factory(PayOperation)
 ```
 
 The unit of the domain declares it as a {py:class}`~ingots.puer.Factory`,
@@ -63,12 +64,12 @@ receipt = await project.operations.run(
   caller, an entry of an activity log for one: it gives `None` for the
   result instead and, since nothing handles the exception afterwards, logs
   it at `WARNING` with its traceback. A cancellation goes through.
-- `operations.checker` lets the caller run the operation, checking its class
-  before the factory creates it: the root runs any, another caller needs
-  every flag of its `PERMISSIONS`; an operation declares them,
-  `Permissions()` for none. A refused caller raises
-  `OperationPermissionsError` with the caller, the uid of the run and the
-  permissions required.
+- `operations.checker` lets the caller run the operation: the runner
+  creates it, asks what it requires, `get_permissions()`, and gives that to
+  the checker; the root runs any, another caller needs every flag of it. A
+  refused caller raises `OperationPermissionsError` with the caller, the
+  uid of the run and the permissions required; the operation created is
+  not run.
 - An exception of the operation is raised as it is, so its handler, a
   policy of a server for one, decides by its class; the runner logs it at
   `INFO` without its traceback, by its `repr()`: its message and its
@@ -102,3 +103,48 @@ keeps its bit across versions:
 
 A subclass of the checker in its slot, `checker = Slot(...)`, decides in
 `_is_allowed()` otherwise, asking a service for one.
+
+## The permissions of an operation
+
+What a caller needs is `get_permissions()` of the operation. By default it
+gives the constant `PERMISSIONS`, built once a process and readable from
+the class. An operation whose permissions depend on its project overrides
+the hook `_get_permissions()` instead, computed on every run, the project
+narrowed as everywhere:
+
+```python
+class RefundOperation(BaseOperation[RefundParameters, Receipt]):
+    project: "ShopProject"
+
+    @t.override
+    def _get_permissions(self) -> Permissions:
+        if self.project.settings.configs.SHOP_REFUNDS_RESTRICTED:
+            return Permissions(Shop.REFUND | Shop.MANAGE)
+        return Permissions(Shop.REFUND)
+```
+
+A complete operation declares one or the other, `Permissions()` for none:
+one that declares neither raises `TypeError` when its class is created. A
+base with an abstract method left is not checked, its subclasses are.
+
+## Commands running an operation
+
+A command of the command line that runs an operation extends
+{py:class}`~ingots.defaults.operations.BaseOperationCommand`: it gives the
+operation in `_get_operation()` and calls `run_operation()` in its `_run()`,
+doing what it needs with the result. It runs as the root, the command line
+being the operator's, unless `_get_caller()` says otherwise:
+
+```python
+class PayCommand(BaseOperationCommand[PayParameters, Receipt]):
+    cli_name = "pay"
+
+    @t.override
+    def _get_operation(self) -> "BoundFactory[PayOperation]":
+        return self.project.shop.pay
+
+    @t.override
+    async def _run(self) -> None:
+        receipt = await self.run_operation(PayParameters(amount=5))
+        print(receipt.amount)
+```

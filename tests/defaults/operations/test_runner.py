@@ -1,3 +1,4 @@
+import abc
 import asyncio
 import logging
 import typing as t
@@ -9,7 +10,7 @@ from ingots.defaults.operations import (
     Caller,
     OperationMetadata,
     OperationPermissionsError,
-    Operations,
+    OperationsUnit,
     Permissions,
     PermissionsChecker,
 )
@@ -21,7 +22,7 @@ from tests import TestCase
 
 from .operations_fixtures import (
     InsufficientFunds,
-    Pay,
+    PayOperation,
     PayParameters,
     Receipt,
     Shop,
@@ -34,10 +35,10 @@ PAYER: t.Final = Caller(uid="payer", permissions=Permissions(Shop.PAY))
 REFUNDER: t.Final = Caller(uid="refunder", permissions=Permissions(Shop.REFUND))
 
 
-def create_recording_project(created: list[Pay]) -> ShopProject:
-    """A project whose shop records every Pay it creates in ``created``."""
+def create_recording_project(created: list[PayOperation]) -> ShopProject:
+    """A project whose shop records every payment it creates in ``created``."""
 
-    class RecordedPay(Pay):
+    class RecordedPay(PayOperation):
         def __init__(self, project: Project) -> None:
             super().__init__(project)
             created.append(self)
@@ -71,7 +72,7 @@ class RunTestCase(OperationsTestCase):
         self.assertRegex(receipt.run_uid, r"^[0-9a-f]{32}$")
         self.assertEqual(
             [record.getMessage() for record in logs.records],
-            ["<Pay>: started", "<Pay>: done"],
+            ["<PayOperation>: started", "<PayOperation>: done"],
         )
 
     def test_the_run_takes_the_uid_of_its_caller(self) -> None:
@@ -96,9 +97,9 @@ class RunTestCase(OperationsTestCase):
         self.assertEqual(
             [record.getMessage() for record in logs.records],
             [
-                "<Checkout>: started",
-                *("<Pay>: started", "<Pay>: done") * 2,
-                "<Checkout>: done",
+                "<CheckoutOperation>: started",
+                *("<PayOperation>: started", "<PayOperation>: done") * 2,
+                "<CheckoutOperation>: done",
             ],
         )
 
@@ -115,7 +116,7 @@ class RunTestCase(OperationsTestCase):
             logs.records[-1]
             .getMessage()
             .startswith(
-                "<Checkout>: failed: OperationPermissionsError("
+                "<CheckoutOperation>: failed: OperationPermissionsError("
                 "'refunder lacks the permissions of the operation', "
                 "Caller(uid='refunder'"
             )
@@ -134,7 +135,7 @@ class RunTestCase(OperationsTestCase):
         self.assertIsNone(RUN_UID.get(None))
 
     def test_concurrent_runs_have_instances_and_uids_of_their_own(self) -> None:
-        created: list[Pay] = []
+        created: list[PayOperation] = []
         project = create_recording_project(created)
 
         async def run_both() -> list[Receipt]:
@@ -180,7 +181,9 @@ class RunTestCase(OperationsTestCase):
                 self.assertIsNone(result)
                 [ignored] = logs.records
                 self.assertTrue(
-                    ignored.getMessage().startswith(f"<Pay>: failure ignored: {error}")
+                    ignored.getMessage().startswith(
+                        f"<PayOperation>: failure ignored: {error}"
+                    )
                 )
                 self.assertIsNotNone(ignored.exc_info)
 
@@ -210,7 +213,8 @@ class RunTestCase(OperationsTestCase):
             )
         self.assertEqual(
             logs.output[-1],
-            "DEBUG:ingots.defaults.operations.runner:<Ping>: done: None -> 'pong'",
+            "DEBUG:ingots.defaults.operations.runner:"
+            "<PingOperation>: done: None -> 'pong'",
         )
 
     def test_an_exception_is_raised_as_it_is_and_logged_without_traceback(
@@ -226,7 +230,7 @@ class RunTestCase(OperationsTestCase):
         self.assertEqual(failed.levelno, logging.INFO)
         self.assertEqual(
             failed.getMessage(),
-            "<Pay>: failed: InsufficientFunds('insufficient funds', 500)",
+            "<PayOperation>: failed: InsufficientFunds('insufficient funds', 500)",
         )
         self.assertIsNone(failed.exc_info)
 
@@ -241,7 +245,7 @@ class UnitRunTestCase(OperationsTestCase):
             receipt = asyncio.run(run)
         t.assert_type(receipt, Receipt)
         self.assertEqual(receipt.amount, 5)
-        self.assertEqual(logs.records[0].getMessage(), "<Pay>: started")
+        self.assertEqual(logs.records[0].getMessage(), "<PayOperation>: started")
 
     def test_the_unit_runs_an_operation_safely(self) -> None:
         operations = self.project.operations
@@ -263,21 +267,25 @@ class PermissionsCheckTestCase(OperationsTestCase):
             with self.assertRaises(OperationPermissionsError) as raised:
                 asyncio.run(run)
         self.assertEqual(raised.exception.caller, REFUNDER)
-        self.assertEqual(raised.exception.required, Pay.PERMISSIONS)
+        self.assertEqual(raised.exception.required, PayOperation.PERMISSIONS)
         self.assertRegex(raised.exception.run_uid, r"^[0-9a-f]{32}$")
         [refused] = logs.output
-        self.assertIn("<Pay>: refunder lacks Permissions({'shop': 1})", refused)
+        self.assertIn(
+            "<PayOperation>: refunder lacks Permissions({'shop': 1})", refused
+        )
 
-    def test_a_refused_caller_creates_no_operation(self) -> None:
-        created: list[Pay] = []
+    def test_a_refused_caller_runs_no_operation(self) -> None:
+        # the operation is created to ask its permissions, then not run
+        created: list[PayOperation] = []
         project = create_recording_project(created)
         run = project.operations.runner.run(
             project.shop.pay, PayParameters(5), self.create_metadata(REFUNDER)
         )
-        with self.assertLogs(LOGGER, "INFO"):
+        with self.assertLogs(LOGGER, "INFO") as logs:
             with self.assertRaises(OperationPermissionsError):
                 asyncio.run(run)
-        self.assertEqual(created, [])
+        self.assertEqual(len(created), 1)
+        self.assertFalse(any("started" in line for line in logs.output))
 
     def test_the_root_runs_any_operation(self) -> None:
         with self.assertLogs(LOGGER, "INFO"):
@@ -301,12 +309,75 @@ class PermissionsCheckTestCase(OperationsTestCase):
             )
         self.assertEqual(pong, "pong")
 
-    def test_an_operation_declares_its_permissions(self) -> None:
-        run = self.runner.run(
-            self.project.shop.undeclared, None, self.create_metadata(ROOT_CALLER)
-        )
-        with self.assertRaisesRegex(TypeError, "Undeclared declares no PERMISSIONS"):
-            asyncio.run(run)
+    def test_the_hook_gives_the_constant_by_default(self) -> None:
+        operation = self.project.shop.pay()
+        self.assertIs(operation.get_permissions(), PayOperation.PERMISSIONS)
+
+    def test_the_permissions_come_by_the_hook_of_the_operation(self) -> None:
+        class RefundOperation(BaseOperation[int, int]):
+            project: "RefundProject"
+
+            @t.override
+            def _get_permissions(self) -> Permissions:
+                return Permissions(Shop.REFUND) | self.project.EXTRA
+
+            @t.override
+            async def _run(self, parameters: int, metadata: OperationMetadata) -> int:
+                return -parameters
+
+        class RefundUnit(ShopUnit):
+            refund = Factory(RefundOperation)
+
+        class RefundProject(ShopProject):
+            EXTRA: t.ClassVar[Permissions] = Permissions()
+            shop = Slot(RefundUnit)
+
+        project = RefundProject()
+        runner = project.operations.runner
+        metadata = project.operations.create_metadata
+        with self.assertLogs(LOGGER, "INFO"):
+            refunded = asyncio.run(
+                runner.run(project.shop.refund, 5, metadata(REFUNDER))
+            )
+        self.assertEqual(refunded, -5)
+        RefundProject.EXTRA = Permissions(Shop.PAY)
+        with (
+            self.assertLogs(LOGGER, "INFO"),
+            self.assertRaises(OperationPermissionsError) as raised,
+        ):
+            asyncio.run(runner.run(project.shop.refund, 5, metadata(REFUNDER)))
+        self.assertEqual(dict(raised.exception.required), {"shop": 3})
+
+
+class DeclarationTestCase(TestCase):
+    def test_an_operation_declares_its_permissions_when_created(self) -> None:
+        with self.assertRaisesRegex(
+            TypeError, "UndeclaredOperation declares no PERMISSIONS"
+        ):
+
+            class UndeclaredOperation(BaseOperation[None, None]):
+                @t.override
+                async def _run(
+                    self, parameters: None, metadata: OperationMetadata
+                ) -> None:
+                    pass
+
+    def test_a_base_with_an_abstract_method_left_is_not_checked(self) -> None:
+        class BaseRefundOperation(BaseOperation[None, None]):
+            @abc.abstractmethod
+            def _get_reason(self) -> str:
+                raise NotImplementedError
+
+            @t.override
+            async def _run(self, parameters: None, metadata: OperationMetadata) -> None:
+                pass
+
+        with self.assertRaisesRegex(TypeError, "DamagedRefundOperation declares no"):
+
+            class DamagedRefundOperation(BaseRefundOperation):
+                @t.override
+                def _get_reason(self) -> str:
+                    return "damaged"
 
 
 class CustomizationTestCase(TestCase):
@@ -321,11 +392,11 @@ class CustomizationTestCase(TestCase):
             ) -> bool:
                 return True
 
-        class AppOperations(Operations):
+        class AppOperationsUnit(OperationsUnit):
             checker = Slot(AllowingChecker)
 
         class AppProject(ShopProject):
-            operations = Slot(AppOperations)
+            operations = Slot(AppOperationsUnit)
 
         project = AppProject()
         run = project.operations.runner.run(
@@ -338,13 +409,13 @@ class CustomizationTestCase(TestCase):
         self.assertEqual(receipt.caller_uid, "anonymous")
 
     def test_the_uid_of_a_run_is_created_by_the_unit(self) -> None:
-        class AppOperations(Operations):
+        class AppOperationsUnit(OperationsUnit):
             @t.override
             def create_run_uid(self) -> str:
                 return "run-1"
 
         class AppProject(ShopProject):
-            operations = Slot(AppOperations)
+            operations = Slot(AppOperationsUnit)
 
         metadata = AppProject().operations.create_metadata(ANONYMOUS_CALLER)
         self.assertEqual(

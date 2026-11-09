@@ -17,7 +17,7 @@ import typing as t
 from ingots.puer import Component, Slot, Unit
 
 
-class Redis(Component):
+class RedisClient(Component):
     SHUTDOWN_ORDER = 8
 
     async def get(self, key: str) -> str:
@@ -33,7 +33,7 @@ class Redis(Component):
 
 
 class Storage(Unit):
-    redis = Slot(Redis)
+    redis = Slot(RedisClient)
 ```
 
 Awaiting the component configures it, once, and gives it back:
@@ -89,7 +89,7 @@ declared again with it. The application caches what the addon reads, for
 example:
 
 ```python
-class CachedRedis(Redis):
+class CachedRedis(RedisClient):
     @t.override
     async def get(self, key: str) -> str: ...
 

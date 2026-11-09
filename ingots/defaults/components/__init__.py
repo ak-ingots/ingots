@@ -1,6 +1,6 @@
 """The components: the unit running and listing the components of a project."""
 
-__all__ = ("Components",)
+__all__ = ("ComponentsUnit",)
 
 from ingots.puer import Component, Slot
 from ingots.puer.cli import CliUnit
@@ -8,7 +8,7 @@ from ingots.puer.cli import CliUnit
 from .commands import ListComponentsCommand, RunComponentsForeverCommand
 
 
-class Components(CliUnit):
+class ComponentsUnit(CliUnit):
     """
     The components of the project on the command line: ``components list``
     prints them, ``components run-forever --component PATH`` runs some of

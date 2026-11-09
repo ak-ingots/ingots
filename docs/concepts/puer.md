@@ -123,11 +123,11 @@ declares are inherited as they are. Where two addons extend the same default
 application declares that slot with a class joining them:
 
 ```python
-class AppSettings(AuthSettings, InventorySettings): ...
+class AppSettingsUnit(AuthSettingsUnit, InventorySettingsUnit): ...
 
 
 class AppProject(AuthProject, InventoryProject):
-    settings = Slot(AppSettings)
+    settings = Slot(AppSettingsUnit)
 ```
 
 The rule behind it is checked when a class is created, and mypy checks the

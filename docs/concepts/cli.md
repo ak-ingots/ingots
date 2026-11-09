@@ -13,7 +13,7 @@ from ingots.puer import Slot
 from ingots.puer.cli import BaseCommand, CliProject, CliUnit, CommandRunner
 
 
-class Migrate(BaseCommand):
+class MigrateCommand(BaseCommand):
     cli_description = "Applies the pending migrations."
 
     async def _run(self) -> None: ...
@@ -21,7 +21,7 @@ class Migrate(BaseCommand):
 
 class Storage(CliUnit):
     cli_description = "Storage management."
-    migrate = Slot(Migrate)
+    migrate = Slot(MigrateCommand)
 
 
 class AppProject(CliProject):

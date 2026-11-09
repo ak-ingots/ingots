@@ -9,7 +9,7 @@ import typing as t
 from unittest import mock
 
 from ingots.defaults import Project, ProjectCliArgs
-from ingots.defaults.settings import ConfigsError, Settings
+from ingots.defaults.settings import ConfigsError, SettingsUnit
 from ingots.defaults.settings.loaders import FileLoader, JsonFormat, Overrides
 from ingots.puer import Slot
 from ingots.puer.cli import CliParser, CommandRunner
@@ -18,13 +18,13 @@ from tests import TestCase
 
 from .settings_fixtures import (
     AppProject,
-    AppSettings,
+    AppSettingsUnit,
     Mode,
     DefaultPrefixProject,
     StrictProject,
     VaultLoader,
     VaultProject,
-    VaultSettings,
+    VaultSettingsUnit,
     VerboseCliArgs,
     VerboseProject,
 )
@@ -293,35 +293,35 @@ class SettingsLoadingTestCase(LoaderTestCase):
                 self.subTest(name),
                 self.assertRaisesRegex(
                     TypeError,
-                    rf"BadSettings.LOADERS: {name!r} is not a slot of a loader$",
+                    rf"BadSettingsUnit.LOADERS: {name!r} is not a slot of a loader$",
                 ),
             ):
 
-                class BadSettings(Settings):
-                    LOADERS = (*Settings.LOADERS, name)
+                class BadSettingsUnit(SettingsUnit):
+                    LOADERS = (*SettingsUnit.LOADERS, name)
 
     def test_joined_settings_list_the_loaders_of_all_bases(self) -> None:
         class KeysLoader(VaultLoader):
             pass
 
-        class KeysSettings(AppSettings):
-            LOADERS = (*AppSettings.LOADERS, "keys_loader")
+        class KeysSettingsUnit(AppSettingsUnit):
+            LOADERS = (*AppSettingsUnit.LOADERS, "keys_loader")
             keys_loader = Slot(KeysLoader)
 
         with self.assertRaisesRegex(
             TypeError,
-            r"BadSettings.LOADERS lacks 'keys_loader' of \S*KeysSettings.LOADERS: "
-            r"list the loaders of all bases$",
+            r"BadSettingsUnit.LOADERS lacks 'keys_loader' of "
+            r"\S*KeysSettingsUnit.LOADERS: list the loaders of all bases$",
         ):
 
-            class BadSettings(VaultSettings, KeysSettings):
+            class BadSettingsUnit(VaultSettingsUnit, KeysSettingsUnit):
                 pass
 
-        class JoinedSettings(VaultSettings, KeysSettings):
-            LOADERS = (*KeysSettings.LOADERS, "vault_loader")
+        class JoinedSettingsUnit(VaultSettingsUnit, KeysSettingsUnit):
+            LOADERS = (*KeysSettingsUnit.LOADERS, "vault_loader")
 
         self.assertEqual(
-            JoinedSettings.LOADERS,
+            JoinedSettingsUnit.LOADERS,
             ("file_loader", "env_loader", "cli_loader", "keys_loader", "vault_loader"),
         )
 
