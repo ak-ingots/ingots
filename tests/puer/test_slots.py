@@ -3,15 +3,17 @@ import unittest
 from collections.abc import Iterator
 
 from ingots.puer import (
+    BoundFactories,
     BoundFactory,
     Component,
     Entity,
+    Factories,
     Factory,
     Project,
     Slot,
     Unit,
 )
-from ingots.puer.slots import BaseSlot
+from ingots.puer.slots import BaseClassSlot
 
 from .components_fixtures import ComponentsProject
 from .fixtures import (
@@ -150,7 +152,7 @@ class SlotsCheckTestCase(unittest.TestCase):
 class SlotsOwnerTestCase(unittest.TestCase):
     def test_the_slots_are_iterated_by_kind(self) -> None:
         units = AppProject.slots_iter(Unit)
-        t.assert_type(units, Iterator[tuple[str, BaseSlot[Unit]]])
+        t.assert_type(units, Iterator[tuple[str, BaseClassSlot[Unit]]])
         self.assertEqual(
             [(name, slot.cls) for name, slot in units],
             [("pkg2_unit", Pkg2Project.pkg2_unit.cls), ("pkg1_unit", AppUnit)],
@@ -175,7 +177,7 @@ class SlotsOwnerTestCase(unittest.TestCase):
 
     def test_a_component_kind_gives_the_slots_of_components(self) -> None:
         slots = ComponentsProject.slots_walk(Component)
-        t.assert_type(slots, Iterator[tuple[str, BaseSlot[Component]]])
+        t.assert_type(slots, Iterator[tuple[str, BaseClassSlot[Component]]])
         self.assertEqual(
             [(path, slot.cls.__qualname__) for path, slot in slots],
             [
@@ -336,6 +338,87 @@ class FactoryTestCase(unittest.TestCase):
     def test_a_factory_cannot_be_assigned(self) -> None:
         with self.assertRaises(AttributeError):
             RunsProject().runs.run = Run  # type: ignore[assignment]
+
+
+class Audit(Entity):
+    pass
+
+
+class GroupsUnit(Unit):
+    runs = Factories[Entity](Run, Audit, Run)
+    run = Factory(Run)
+
+
+class GroupsProject(Project):
+    groups = Slot(GroupsUnit)
+
+
+class FactoriesTestCase(unittest.TestCase):
+    def test_class_access_returns_the_factories(self) -> None:
+        factories = GroupsUnit.runs
+        t.assert_type(factories, Factories[Entity])
+        self.assertEqual(factories.classes, (Run, Audit))  # a class once
+        self.assertEqual(repr(factories), "Factories(Run, Audit)")
+
+    def test_every_call_creates_an_entity_of_each_class(self) -> None:
+        p = GroupsProject()
+        create = p.groups.runs
+        t.assert_type(create, BoundFactories[Entity])
+        self.assertEqual(create.classes, (Run, Audit))
+        self.assertEqual(repr(create), "BoundFactories(Run, Audit)")
+        first, second = create(), p.groups.runs()
+        self.assertEqual([type(entity) for entity in first], [Run, Audit])
+        self.assertFalse(any(one is other for one, other in zip(first, second)))
+        self.assertTrue(all(entity.project is p for entity in first))
+
+    def test_the_owner_keeps_nothing_and_walks_no_group(self) -> None:
+        p = GroupsProject()
+        p.groups.runs()
+        self.assertEqual(_get_created(p.groups), {})
+        self.assertEqual(
+            [path for path, _ in GroupsProject.slots_walk()], ["groups", "groups.run"]
+        )
+        self.assertEqual(list(GroupsUnit.slots_iter(Audit)), [])
+
+    def test_a_subclass_adds_drops_and_replaces_classes(self) -> None:
+        class AppGroups(GroupsUnit):
+            runs = Factories[Entity](
+                *(cls for cls in GroupsUnit.runs.classes if cls is not Audit),
+                LoggedRun,
+            )
+
+        self.assertEqual(AppGroups.runs.classes, (Run, LoggedRun))
+        p = GroupsProject()
+        runs = AppGroups(p).runs()
+        self.assertEqual([type(entity) for entity in runs], [Run, LoggedRun])
+
+    def test_a_group_and_a_factory_do_not_replace_each_other(self) -> None:
+        with self.assertRaisesRegex(TypeError, r"ToFactory\.runs = Factory\(Run\)"):
+
+            class ToFactory(GroupsUnit):
+                runs = Factory(Run)  # type: ignore[assignment]
+
+        with self.assertRaisesRegex(TypeError, r"ToGroup\.run = Factories\(Run\)"):
+
+            class ToGroup(GroupsUnit):
+                run = Factories[Run](Run)  # type: ignore[assignment]
+
+    def test_a_component_or_a_unit_takes_a_slot(self) -> None:
+        class Server(Component):
+            pass
+
+        for cls in (Server, RunsUnit):
+            with (
+                self.subTest(cls),
+                self.assertRaisesRegex(
+                    TypeError, r"Factories\(.*\): a component or a unit has a Slot"
+                ),
+            ):
+                Factories[Entity](Run, cls)
+
+    def test_factories_cannot_be_assigned(self) -> None:
+        with self.assertRaises(AttributeError):
+            GroupsProject().groups.runs = Run  # type: ignore[assignment]
 
 
 def _get_created(owner: object) -> dict[str, object]:

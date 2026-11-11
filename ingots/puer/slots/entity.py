@@ -4,7 +4,7 @@ __all__ = ("Slot",)
 
 import typing as t
 
-from .base import BaseSlot
+from .base import BaseClassSlot
 
 if t.TYPE_CHECKING:
     from collections.abc import Iterator
@@ -14,7 +14,7 @@ if t.TYPE_CHECKING:
     from .owner import SlotsOwner
 
 
-class Slot[EntityType: Entity](BaseSlot[EntityType]):
+class Slot[EntityType: Entity](BaseClassSlot[EntityType]):
     """
     One entity per owner, created on first access and owned by it. On the
     class it is the slot itself. A subclass customizes it by declaring the

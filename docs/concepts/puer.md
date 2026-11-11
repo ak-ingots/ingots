@@ -71,9 +71,17 @@ gives before creating any. The caller owns what it creates, so the project
 neither walks nor shuts it down; a component or a unit has a slot. A
 subclass customizes a factory as it does a slot.
 
+Several classes have a {py:class}`~ingots.puer.slots.Factories`, one
+entity of each on every call, in their order: the operations run together
+by the defaults. Its type is given, `Factories[BaseOperation[Order, t.Any]]`,
+and a subclass declares it again with any classes, those of its base from
+`classes` among them. A slot of one class extends
+{py:class}`~ingots.puer.slots.BaseClassSlot`, one of several
+{py:class}`~ingots.puer.slots.BaseClassesSlot`.
+
 A project or a unit is a {py:class}`~ingots.puer.slots.owner.SlotsOwner`: its
-`slots_` methods walk its slots, all of them or those holding one kind of
-entity, typed by that kind, and create nothing on the way.
+`slots_` methods walk its slots of one class, all of them or those holding
+one kind of entity, typed by that kind, and create nothing on the way.
 
 - `StorageProject.slots_iter(Unit)` gives the names and the slots of the
   class itself; `StorageProject.slots_walk(Repository)` goes down through the

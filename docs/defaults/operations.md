@@ -148,3 +148,45 @@ class PayCommand(BaseOperationCommand[PayParameters, Receipt]):
         receipt = await self.run_operation(PayParameters(amount=5))
         print(receipt.amount)
 ```
+
+## Operations run together
+
+Operations independent of each other, taking the same parameters, the
+checks of an order for one, run together. A unit declares them in a
+{py:class}`~ingots.puer.Factories`, a slot of several classes, in their
+order, a class once, typed by what they take:
+
+```python
+class ShopUnit(Unit):
+    checks = Factories[BaseOperation[Order, t.Any]](StockOperation, LimitOperation)
+
+
+class AppShopUnit(ShopUnit):
+    checks = Factories[BaseOperation[Order, t.Any]](
+        *ShopUnit.checks.classes, FraudOperation
+    )
+```
+
+The type is given, never inferred: mypy then checks that each class takes
+what the group gives, and the slot of a subclass against that of its base.
+A subclass declares the slot again from the classes of its base, adding,
+dropping or replacing some.
+
+```python
+results = await project.operations.run_group(project.shop.checks, order, metadata)
+reserved = results.get(StockOperation)  # typed by the result of the class
+```
+
+- `run_group()` creates the operations and checks the caller for every one
+  before any runs: refused one, it raises `OperationPermissionsError` and
+  none runs. The context of the logs is bound once for them all.
+- They run concurrently, each with the parameters of the group, and every
+  one to its end, whatever the others do: their failures come together in
+  an `ExceptionGroup`, in the order of their classes. A cancellation goes
+  through.
+- {py:class}`~ingots.defaults.operations.OperationsResults` gives the result
+  of each by the class the group holds; `None` is a result as any other, a
+  class the group does not hold raises `KeyError`.
+
+Operations one after the other, the result of one the parameters of the
+next, are not a group: one operation runs them.
