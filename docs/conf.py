@@ -1,7 +1,7 @@
 # Configuration file for the Sphinx documentation builder.
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-import os.path
+import os
 import typing as t
 from importlib.metadata import version as _dist_version
 
@@ -52,6 +52,9 @@ intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
 # -- HTML output ------------------------------------------------------------
 
 html_theme = "sphinx_rtd_theme"
+# The canonical URL Read the Docs gives a build: the pages served on another
+# domain point to it. None locally.
+html_baseurl = os.environ.get("READTHEDOCS_CANONICAL_URL", "")
 html_static_path: list[str] = ["static"]
 # Trims the "On Read the Docs" section out of the Addons flyout menu; see the
 # file for why this cannot be done with CSS or a project setting.
