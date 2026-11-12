@@ -2,15 +2,18 @@
 
 __all__ = ("CALLER_UID", "RUN_UID", "OperationsRunner")
 
+import asyncio
 import logging
 import typing as t
 
 from ingots.defaults.logging.context import LogContextVar
 from ingots.puer import Entity
 
+from .results import OperationsResults
+
 if t.TYPE_CHECKING:
     from ingots.defaults.project import Project
-    from ingots.puer import BoundFactory
+    from ingots.puer import BoundFactories, BoundFactory
 
     from .operation import BaseOperation, OperationMetadata
 
@@ -37,6 +40,9 @@ class OperationsRunner(Entity):
     the operation is raised as it is, logged by its ``repr()``, its message
     and its context, without its traceback: its handler, a policy of a
     server for one, logs it as it decides.
+
+    Operations independent of each other, taking the same parameters, run
+    together from the slot of their factories, :meth:`run_group`.
     """
 
     project: "Project"
@@ -59,17 +65,7 @@ class OperationsRunner(Entity):
             await self.project.operations.checker.check(
                 factory.cls, operation.get_permissions(), metadata
             )
-            logger.info("%r: started", operation)
-            try:
-                result = await operation._run(parameters, metadata)
-            except Exception as error:
-                logger.info("%r: failed: %r", operation, error)
-                raise
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug("%r: done: %r -> %r", operation, parameters, result)
-            else:
-                logger.info("%r: done", operation)
-        return result
+            return await self._run_operation(operation, parameters, metadata)
 
     @t.final
     async def run_safe[ParametersType, ResultType](
@@ -95,3 +91,69 @@ class OperationsRunner(Entity):
                 exc_info=error,
             )
             return None
+
+    @t.final
+    async def run_group[ParametersType](
+        self,
+        factories: "BoundFactories[BaseOperation[ParametersType, t.Any]]",
+        parameters: ParametersType,
+        metadata: "OperationMetadata",
+    ) -> OperationsResults:
+        """
+        Runs the operations ``factories`` creates, ``project.shop.checks``,
+        concurrently, each with ``parameters`` for the caller of
+        ``metadata``: the caller is checked for every one before any runs,
+        and every one runs to its end, whatever the others do. The context
+        of the logs is bound once for them all.
+
+        :raises OperationPermissionsError: the caller may not run one; none
+            runs.
+        :raises ExceptionGroup: some failed, their exceptions in the order
+            of their classes.
+        """
+        with RUN_UID.bind(metadata.run_uid), CALLER_UID.bind(metadata.caller.uid):
+            operations = factories()
+            checker = self.project.operations.checker
+            for operation in operations:
+                await checker.check(
+                    type(operation), operation.get_permissions(), metadata
+                )
+            outcomes = await asyncio.gather(
+                *(
+                    self._run_operation(operation, parameters, metadata)
+                    for operation in operations
+                ),
+                return_exceptions=True,
+            )
+        errors: list[Exception] = []
+        for outcome in outcomes:
+            if isinstance(outcome, Exception):
+                errors.append(outcome)
+            elif isinstance(outcome, BaseException):
+                raise outcome  # a cancellation goes through, not a failure
+        if errors:
+            raise ExceptionGroup(
+                f"{len(errors)} of {len(operations)} operations failed", errors
+            )
+        return OperationsResults(dict(zip(factories.classes, outcomes)))
+
+    @t.final
+    async def _run_operation[ParametersType, ResultType](
+        self,
+        operation: "BaseOperation[ParametersType, ResultType]",
+        parameters: ParametersType,
+        metadata: "OperationMetadata",
+    ) -> ResultType:
+        # an operation created, its caller checked, the context of the logs
+        # bound: what every run shares
+        logger.info("%r: started", operation)
+        try:
+            result = await operation._run(parameters, metadata)
+        except Exception as error:
+            logger.info("%r: failed: %r", operation, error)
+            raise
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("%r: done: %r -> %r", operation, parameters, result)
+        else:
+            logger.info("%r: done", operation)
+        return result

@@ -12,7 +12,7 @@ from ingots.defaults.operations import (
     Permissions,
 )
 from ingots.defaults.operations.runner import CALLER_UID, RUN_UID
-from ingots.puer import Factory, Slot, Unit
+from ingots.puer import Factories, Factory, Slot, Unit
 
 
 class Shop(PermissionFlags, domain="shop"):
@@ -41,6 +41,10 @@ class InsufficientFunds(Exception):
     pass
 
 
+class LimitExceeded(Exception):
+    pass
+
+
 class PayOperation(BaseOperation[PayParameters, Receipt]):
     PERMISSIONS = Permissions(Shop.PAY)
 
@@ -56,6 +60,18 @@ class PayOperation(BaseOperation[PayParameters, Receipt]):
             metadata.caller.uid,
             (RUN_UID.get(), CALLER_UID.get()),
         )
+
+
+class LimitOperation(BaseOperation[PayParameters, int]):
+    """The limit left after a payment: a check of a payment, as the payment."""
+
+    PERMISSIONS = Permissions(Stock.READ)
+
+    @t.override
+    async def _run(self, parameters: PayParameters, metadata: OperationMetadata) -> int:
+        if parameters.amount > 50:
+            raise LimitExceeded("over the limit", parameters.amount)
+        return 50 - parameters.amount
 
 
 class CheckoutOperation(BaseOperation[tuple[PayParameters, ...], list[Receipt]]):
@@ -90,11 +106,46 @@ class SleepOperation(BaseOperation[None, None]):
         await asyncio.sleep(10)
 
 
+class WaitOperation(BaseOperation[asyncio.Event, str]):
+    PERMISSIONS = Permissions()
+
+    @t.override
+    async def _run(self, parameters: asyncio.Event, metadata: OperationMetadata) -> str:
+        await parameters.wait()
+        return "waited"
+
+
+class SignalOperation(BaseOperation[asyncio.Event, str]):
+    PERMISSIONS = Permissions()
+
+    @t.override
+    async def _run(self, parameters: asyncio.Event, metadata: OperationMetadata) -> str:
+        parameters.set()
+        return "signalled"
+
+
+class CancelledOperation(BaseOperation[asyncio.Event, None]):
+    PERMISSIONS = Permissions()
+
+    @t.override
+    async def _run(
+        self, parameters: asyncio.Event, metadata: OperationMetadata
+    ) -> None:
+        raise asyncio.CancelledError()
+
+
 class ShopUnit(Unit):
     pay = Factory(PayOperation)
     checkout = Factory(CheckoutOperation)
     ping = Factory(PingOperation)
     sleep = Factory(SleepOperation)
+    # a payment with its checks; a group waiting for itself
+    checks = Factories[BaseOperation[PayParameters, t.Any]](
+        PayOperation, LimitOperation
+    )
+    handshake = Factories[BaseOperation[asyncio.Event, t.Any]](
+        WaitOperation, SignalOperation
+    )
 
 
 class ShopProject(Project):

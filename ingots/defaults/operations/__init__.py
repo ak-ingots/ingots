@@ -12,6 +12,7 @@ __all__ = (
     "Caller",
     "OperationMetadata",
     "OperationPermissionsError",
+    "OperationsResults",
     "OperationsUnit",
     "OperationsRunner",
     "PermissionFlags",
@@ -30,16 +31,18 @@ from .commands import BaseOperationCommand
 from .errors import OperationPermissionsError
 from .operation import BaseOperation, OperationMetadata
 from .permissions import PERMISSION_BITS, PermissionFlags, Permissions
+from .results import OperationsResults
 from .runner import OperationsRunner
 
 if t.TYPE_CHECKING:
-    from ingots.puer import BoundFactory
+    from ingots.puer import BoundFactories, BoundFactory
 
 
 class OperationsUnit(Unit):
     """
     The base of the operations, not the operations themselves: those live
     in the units of their domains. :meth:`run` runs them with ``runner``,
+    :meth:`run_group` several of them together,
     ``checker`` lets their callers run them; a subclass of either in its
     slot changes how.
     """
@@ -75,6 +78,24 @@ class OperationsUnit(Unit):
         :meth:`OperationsRunner.run_safe` does.
         """
         return await self.runner.run_safe(factory, parameters, metadata)
+
+    @t.final
+    async def run_group[ParametersType](
+        self,
+        factories: "BoundFactories[BaseOperation[ParametersType, t.Any]]",
+        parameters: ParametersType,
+        metadata: OperationMetadata,
+    ) -> OperationsResults:
+        """
+        Runs the operations ``factories`` creates, ``project.shop.checks``,
+        concurrently, each with ``parameters``, as
+        :meth:`OperationsRunner.run_group` does.
+
+        :raises OperationPermissionsError: the caller may not run one; none
+            runs.
+        :raises ExceptionGroup: some failed.
+        """
+        return await self.runner.run_group(factories, parameters, metadata)
 
     def create_metadata(
         self, caller: Caller, *, run_uid: str | None = None

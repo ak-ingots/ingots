@@ -9,7 +9,7 @@ import typing as t
 
 from ingots.puer.entity import Entity
 
-from .base import BaseSlot
+from .base import BaseClassSlot, BaseSlot
 from .entity import Slot
 
 if t.TYPE_CHECKING:
@@ -41,48 +41,51 @@ class SlotsOwner:
 
     @t.overload
     @classmethod
-    def slots_iter(cls) -> "Iterator[tuple[str, BaseSlot[t.Any]]]": ...
+    def slots_iter(cls) -> "Iterator[tuple[str, BaseClassSlot[t.Any]]]": ...
 
     @t.overload
     @classmethod
     def slots_iter[EntityType: Entity](
         cls, kind: type[EntityType]
-    ) -> "Iterator[tuple[str, BaseSlot[EntityType]]]": ...
+    ) -> "Iterator[tuple[str, BaseClassSlot[EntityType]]]": ...
 
     @t.final
     @classmethod
     def slots_iter(
         cls, kind: type[Entity] = Entity
-    ) -> "Iterator[tuple[str, BaseSlot[t.Any]]]":
+    ) -> "Iterator[tuple[str, BaseClassSlot[t.Any]]]":
         """
-        The slots of the class holding ``kind``, own and inherited, in
-        declaration order, with their names.
+        The slots of one class holding ``kind``, own and inherited, in
+        declaration order, with their names; a slot of several classes is
+        of none.
         """
         for name, slot in _get_index(cls).items():
-            if issubclass(slot.cls, kind):
+            if isinstance(slot, BaseClassSlot) and issubclass(slot.cls, kind):
                 yield name, slot
 
     @t.overload
     @classmethod
-    def slots_walk(cls) -> "Iterator[tuple[str, BaseSlot[t.Any]]]": ...
+    def slots_walk(cls) -> "Iterator[tuple[str, BaseClassSlot[t.Any]]]": ...
 
     @t.overload
     @classmethod
     def slots_walk[EntityType: Entity](
         cls, kind: type[EntityType]
-    ) -> "Iterator[tuple[str, BaseSlot[EntityType]]]": ...
+    ) -> "Iterator[tuple[str, BaseClassSlot[EntityType]]]": ...
 
     @t.final
     @classmethod
     def slots_walk(
         cls, kind: type[Entity] = Entity
-    ) -> "Iterator[tuple[str, BaseSlot[t.Any]]]":
+    ) -> "Iterator[tuple[str, BaseClassSlot[t.Any]]]":
         """
-        The slots holding ``kind`` under the class and, depth first, under the
-        units in it, in declaration order, with their dotted paths
-        (``storage.redis``).
+        The slots of one class holding ``kind`` under the class and, depth
+        first, under the units in it, in declaration order, with their
+        dotted paths (``storage.redis``).
         """
         for name, slot in _get_index(cls).items():
+            if not isinstance(slot, BaseClassSlot):
+                continue
             if issubclass(slot.cls, kind):
                 yield name, slot
             if issubclass(slot.cls, SlotsOwner):
