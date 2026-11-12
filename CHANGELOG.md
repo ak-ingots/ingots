@@ -5,6 +5,20 @@ are the previous implementation.
 
 <!-- towncrier release notes start -->
 
+## [0.33.1] - 2026-11-12
+### Added
+- Operations independent of each other run together:
+  `OperationsUnit.run_group()` runs the operations of a `Factories`, a new
+  slot of several classes, concurrently with the same parameters, checking
+  the caller for every one before any runs, their failures raised together
+  in an `ExceptionGroup`, their results in `OperationsResults`, by class.
+
+### Changed
+- `BaseSlot` holds no class any more: a slot of one class extends
+  `BaseClassSlot`, which has `cls`, one of several `BaseClassesSlot`.
+  `SlotsOwner.slots_iter()` and `slots_walk()` give the slots of one class
+  only, typed `BaseClassSlot`.
+
 ## [0.33.0] - 2026-11-09
 ### Added
 - `BaseOperationCommand` runs an operation from the command line: a command
