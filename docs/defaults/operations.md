@@ -77,7 +77,27 @@ receipt = await project.operations.run(
   with the parameters and the result at `DEBUG`.
 
 A `Caller` is immutable: its `uid`, its `Permissions` and `is_root`.
-`ROOT_CALLER` runs any operation, `ANONYMOUS_CALLER` holds no permission.
+
+The callers every project has are those of `operations.callers`, a
+{py:class}`~ingots.defaults.operations.CallersProvider`: its attribute
+`ROOT` runs any operation, a command of the operator for one; `get_anonymous()` gives the caller of a call that tells no one, a
+server's, with what anyone may, nothing by default. An application or an
+addon adds to it by the hook `_get_anonymous_permissions()` of a subclass
+in the slot, each to what its base gives, so that none takes away what
+another gave:
+
+```python
+class AppCallers(CallersProvider):
+    @t.override
+    def _get_anonymous_permissions(self) -> Permissions:
+        return super()._get_anonymous_permissions() | Permissions(Shop.PAY)
+```
+
+The constants `ROOT_CALLER` and `ANONYMOUS_CALLER` are deprecated since
+0.33.2, removed in 0.34: the root is `operations.callers.ROOT`, the
+anonymous caller `operations.callers.get_anonymous()`, which has what the
+application gives anyone.
+
 `Permissions` are immutable too, a bit mask per domain: `|` merges two,
 `-` takes one out of the other, `has()` tells whether they cover others.
 They take the flags of domains and the masks by domain, as a database or
@@ -132,8 +152,9 @@ base with an abstract method left is not checked, its subclasses are.
 A command of the command line that runs an operation extends
 {py:class}`~ingots.defaults.operations.BaseOperationCommand`: it gives the
 operation in `_get_operation()` and calls `run_operation()` in its `_run()`,
-doing what it needs with the result. It runs as the root, the command line
-being the operator's, unless `_get_caller()` says otherwise:
+doing what it needs with the result. It runs as the root,
+`operations.callers.ROOT`, the command line being the operator's, unless
+`_get_caller()` says otherwise:
 
 ```python
 class PayCommand(BaseOperationCommand[PayParameters, Receipt]):

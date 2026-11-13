@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from ingots.puer import Entity
 
 if t.TYPE_CHECKING:
-    from .caller import Caller
+    from .callers import Caller
     from .permissions import Permissions
 
 

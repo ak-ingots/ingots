@@ -5,7 +5,7 @@ __all__ = ("OperationPermissionsError",)
 import typing as t
 
 if t.TYPE_CHECKING:
-    from .caller import Caller
+    from .callers import Caller
     from .permissions import Permissions
 
 
