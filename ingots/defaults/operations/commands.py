@@ -7,13 +7,11 @@ import typing as t
 
 from ingots.puer.cli import BaseCommand
 
-from .caller import ROOT_CALLER
-
 if t.TYPE_CHECKING:
     from ingots.defaults.project import Project
     from ingots.puer import BoundFactory
 
-    from .caller import Caller
+    from .callers import Caller
     from .operation import BaseOperation
 
 
@@ -55,4 +53,4 @@ class BaseOperationCommand[ParametersType, ResultType](BaseCommand):
 
     def _get_caller(self) -> "Caller":
         """Who runs the operation: the root, the command line being the operator's."""
-        return ROOT_CALLER
+        return self.project.operations.callers.ROOT

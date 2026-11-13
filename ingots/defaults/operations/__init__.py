@@ -10,6 +10,7 @@ __all__ = (
     "BaseOperation",
     "BaseOperationCommand",
     "Caller",
+    "CallersProvider",
     "OperationMetadata",
     "OperationPermissionsError",
     "OperationsResults",
@@ -25,7 +26,7 @@ import typing as t
 
 from ingots.puer import Slot, Unit
 
-from .caller import ANONYMOUS_CALLER, ROOT_CALLER, Caller
+from .callers import ANONYMOUS_CALLER, ROOT_CALLER, Caller, CallersProvider
 from .checker import PermissionsChecker
 from .commands import BaseOperationCommand
 from .errors import OperationPermissionsError
@@ -43,10 +44,12 @@ class OperationsUnit(Unit):
     The base of the operations, not the operations themselves: those live
     in the units of their domains. :meth:`run` runs them with ``runner``,
     :meth:`run_group` several of them together,
-    ``checker`` lets their callers run them; a subclass of either in its
+    ``checker`` lets their callers run them, ``callers`` gives those every
+    project has, the root and the anonymous one; a subclass of any in its
     slot changes how.
     """
 
+    callers = Slot(CallersProvider)
     checker = Slot(PermissionsChecker)
     runner = Slot(OperationsRunner)
 
