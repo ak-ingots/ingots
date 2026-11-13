@@ -5,6 +5,22 @@ are the previous implementation.
 
 <!-- towncrier release notes start -->
 
+## [0.33.2] - 2026-11-13
+### Added
+- The callers every project has, `operations.callers`, a `CallersProvider`:
+  the root, its attribute `ROOT`, and the anonymous one, `get_anonymous()`,
+  with what anyone may, nothing by default, which an application or an addon
+  adds to by the hook `_get_anonymous_permissions()`, each to what its base
+  gives. A command running an operation runs as `operations.callers.ROOT`.
+  The module `caller` of the operations is merged into `callers`; the names
+  stay exported from `ingots.defaults.operations`.
+
+### Deprecated
+- `ROOT_CALLER` and `ANONYMOUS_CALLER` of `ingots.defaults.operations`, to
+  be removed in 0.34: the root is `operations.callers.ROOT`, the anonymous
+  caller `operations.callers.get_anonymous()`, which has what the
+  application gives anyone.
+
 ## [0.33.1] - 2026-11-12
 ### Added
 - Operations independent of each other run together:
