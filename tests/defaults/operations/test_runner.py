@@ -1,4 +1,3 @@
-import abc
 import asyncio
 import logging
 import typing as t
@@ -27,23 +26,22 @@ from .operations_fixtures import (
     PayOperation,
     PayParameters,
     PingOperation,
+    PAY,
+    READ,
+    REFUND,
     Receipt,
-    Shop,
     ShopProject,
     ShopUnit,
     SignalOperation,
     SleepOperation,
-    Stock,
     WaitOperation,
 )
 
 LOGGER = "ingots.defaults.operations"
 ANONYMOUS: t.Final = Caller(uid="anonymous")
-PAYER: t.Final = Caller(uid="payer", permissions=Permissions(Shop.PAY))
-REFUNDER: t.Final = Caller(uid="refunder", permissions=Permissions(Shop.REFUND))
-CHECKER: t.Final = Caller(
-    uid="checker", permissions=Permissions(Shop.PAY) | Permissions(Stock.READ)
-)
+PAYER: t.Final = Caller(uid="payer", permissions=PAY)
+REFUNDER: t.Final = Caller(uid="refunder", permissions=REFUND)
+CHECKER: t.Final = Caller(uid="checker", permissions=PAY | READ)
 
 
 def create_recording_project(created: list[PayOperation]) -> ShopProject:
@@ -348,7 +346,7 @@ class RunGroupTestCase(OperationsTestCase):
         with self.assertLogs(LOGGER, "INFO") as logs:
             with self.assertRaises(OperationPermissionsError) as raised:
                 asyncio.run(run)
-        self.assertEqual(raised.exception.required, LimitOperation.PERMISSIONS)
+        self.assertEqual(raised.exception.required, READ)
         self.assertFalse(any("started" in line for line in logs.output))
 
     def test_a_cancelled_operation_cancels_the_group(self) -> None:
@@ -426,7 +424,7 @@ class PermissionsCheckTestCase(OperationsTestCase):
             with self.assertRaises(OperationPermissionsError) as raised:
                 asyncio.run(run)
         self.assertEqual(raised.exception.caller, REFUNDER)
-        self.assertEqual(raised.exception.required, PayOperation.PERMISSIONS)
+        self.assertEqual(raised.exception.required, PAY)
         self.assertRegex(raised.exception.run_uid, r"^[0-9a-f]{32}$")
         [refused] = logs.output
         self.assertIn(
@@ -468,17 +466,19 @@ class PermissionsCheckTestCase(OperationsTestCase):
             )
         self.assertEqual(pong, "pong")
 
-    def test_the_hook_gives_the_constant_by_default(self) -> None:
-        operation = self.project.shop.pay()
-        self.assertIs(operation.get_permissions(), PayOperation.PERMISSIONS)
+    def test_the_permissions_are_built_by_the_unit(self) -> None:
+        self.assertEqual(self.project.shop.pay().get_permissions(), PAY)
+        self.assertEqual(self.project.shop.checks()[1].get_permissions(), READ)
 
     def test_the_permissions_come_by_the_hook_of_the_operation(self) -> None:
         class RefundOperation(BaseOperation[int, int]):
             project: "RefundProject"
+            parent: "RefundUnit"
 
             @t.override
             def _get_permissions(self) -> Permissions:
-                return Permissions(Shop.REFUND) | self.project.EXTRA
+                permissions = self.parent.permissions
+                return permissions(permissions.flags.REFUND) | self.project.EXTRA
 
             @t.override
             async def _run(self, parameters: int, metadata: OperationMetadata) -> int:
@@ -499,7 +499,7 @@ class PermissionsCheckTestCase(OperationsTestCase):
                 runner.run(project.shop.refund, 5, metadata(REFUNDER))
             )
         self.assertEqual(refunded, -5)
-        RefundProject.EXTRA = Permissions(Shop.PAY)
+        RefundProject.EXTRA = PAY
         with (
             self.assertLogs(LOGGER, "INFO"),
             self.assertRaises(OperationPermissionsError) as raised,
@@ -509,34 +509,28 @@ class PermissionsCheckTestCase(OperationsTestCase):
 
 
 class DeclarationTestCase(TestCase):
-    def test_an_operation_declares_its_permissions_when_created(self) -> None:
-        with self.assertRaisesRegex(
-            TypeError, "UndeclaredOperation declares no PERMISSIONS"
-        ):
-
-            class UndeclaredOperation(BaseOperation[None, None]):
-                @t.override
-                async def _run(
-                    self, parameters: None, metadata: OperationMetadata
-                ) -> None:
-                    pass
-
-    def test_a_base_with_an_abstract_method_left_is_not_checked(self) -> None:
-        class BaseRefundOperation(BaseOperation[None, None]):
-            @abc.abstractmethod
-            def _get_reason(self) -> str:
-                raise NotImplementedError
-
+    def test_an_operation_without_its_permissions_runs_for_none(self) -> None:
+        # abstract: mypy refuses it to a factory; run, it is refused to all,
+        # the root too, asking its permissions before it runs
+        class UndeclaredOperation(BaseOperation[None, None]):
             @t.override
             async def _run(self, parameters: None, metadata: OperationMetadata) -> None:
                 pass
 
-        with self.assertRaisesRegex(TypeError, "DamagedRefundOperation declares no"):
+        class UndeclaredUnit(ShopUnit):
+            undeclared = Factory(UndeclaredOperation)  # type: ignore[type-abstract]
 
-            class DamagedRefundOperation(BaseRefundOperation):
-                @t.override
-                def _get_reason(self) -> str:
-                    return "damaged"
+        class UndeclaredProject(ShopProject):
+            shop = Slot(UndeclaredUnit)
+
+        project = UndeclaredProject()
+        metadata = project.operations.create_metadata(CallersProvider.ROOT)
+        run = project.operations.run(project.shop.undeclared, None, metadata)
+        with self.assertNoLogs(LOGGER, "INFO"):
+            with self.assertRaisesRegex(
+                NotImplementedError, "UndeclaredOperation._get_permissions"
+            ):
+                asyncio.run(run)
 
 
 class CustomizationTestCase(TestCase):

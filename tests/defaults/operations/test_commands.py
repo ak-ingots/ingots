@@ -3,7 +3,7 @@ import io
 import typing as t
 from unittest import mock
 
-from ingots.defaults.operations import BaseOperationCommand, Caller, Permissions
+from ingots.defaults.operations import BaseOperationCommand, Caller
 from ingots.puer import Slot
 from ingots.puer.cli import CliUnit, CommandRunner
 
@@ -12,8 +12,8 @@ from tests import TestCase
 from .operations_fixtures import (
     PayOperation,
     PayParameters,
+    REFUND,
     Receipt,
-    Shop,
     ShopProject,
     ShopUnit,
 )
@@ -21,7 +21,7 @@ from .operations_fixtures import (
 if t.TYPE_CHECKING:
     from ingots.puer import BoundFactory
 
-REFUNDER: t.Final = Caller(uid="refunder", permissions=Permissions(Shop.REFUND))
+REFUNDER: t.Final = Caller(uid="refunder", permissions=REFUND)
 
 
 class PayCommand(BaseOperationCommand[PayParameters, Receipt]):

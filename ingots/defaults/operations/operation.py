@@ -1,6 +1,6 @@
-"""The operation: a brick of the business logic."""
+"""The operation: a brick of the business logic, and the units owning them."""
 
-__all__ = ("BaseOperation", "OperationMetadata")
+__all__ = ("BaseOperation", "OperationMetadata", "OperationsOwner")
 
 import abc
 import typing as t
@@ -10,7 +10,7 @@ from ingots.puer import Entity
 
 if t.TYPE_CHECKING:
     from .callers import Caller
-    from .permissions import Permissions
+    from .permissions import Permissions, PermissionsSlot
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -27,6 +27,24 @@ class OperationMetadata:
     run_uid: str
 
 
+class OperationsOwner(Entity):
+    """
+    A mixin of a unit owning operations, which are not its base: its slot
+    ``permissions``, a :class:`~.PermissionsSlot`, binds the flags of their
+    permissions, nested in it or next to it, their domain its full name::
+
+        class ShopUnit(OperationsOwner, Unit):
+            class Flags(PermissionFlags):
+                PAY = 1 << 0
+
+            permissions = PermissionsSlot(Flags)
+
+            pay = Factory(PayOperation)
+    """
+
+    permissions: "PermissionsSlot[t.Any]"
+
+
 class BaseOperation[ParametersType, ResultType](Entity):
     """
     A brick of the business logic, called from handlers, commands, views:
@@ -36,15 +54,16 @@ class BaseOperation[ParametersType, ResultType](Entity):
     a new instance for each run::
 
         class PayOperation(BaseOperation[PayParameters, Receipt]):
-            PERMISSIONS = Permissions(ShopUnit.PAY)
+            parent: "ShopUnit"
+
+            @t.override
+            def _get_permissions(self) -> Permissions:
+                permissions = self.parent.permissions
+                return permissions(permissions.flags.PAY)
 
             @t.override
             async def _run(self, parameters, metadata):
                 ...
-
-
-        class ShopUnit(Unit):
-            pay = Factory(PayOperation)
 
 
         receipt = await project.operations.run(
@@ -53,23 +72,15 @@ class BaseOperation[ParametersType, ResultType](Entity):
             project.operations.create_metadata(caller, run_uid=request_id),
         )
 
-    What a caller needs to run it is :meth:`get_permissions`: the constant
-    :attr:`PERMISSIONS` by default, ``Permissions()`` for none, one instance
-    a process, readable from the class. An operation whose permissions
-    depend on its project overrides :meth:`_get_permissions` instead,
-    computed on every run. A complete operation does one or the other,
-    checked when its class is created.
-
-    :raises TypeError: a complete operation declares neither.
+    What a caller needs to run it is :meth:`get_permissions`, of its hook
+    :meth:`_get_permissions`, abstract: it builds them by the permissions of
+    the unit it reaches, its parent narrowed, or the nearest of a kind,
+    ``self.find_parent(ShopUnit)``, so that mypy checks the flags, of the
+    enum of that unit, and the hook itself, an operation forgetting it
+    abstract, refused where a factory takes it; ``Permissions()`` for none.
+    An operation running others of other domains adds their permissions,
+    not their flags: ``self.parent.stock.op_move().get_permissions()``.
     """
-
-    PERMISSIONS: t.ClassVar["Permissions"]
-
-    @t.override
-    @classmethod
-    def __init_subclass__(cls, **kwargs: t.Any) -> None:
-        super().__init_subclass__(**kwargs)
-        _check_permissions(cls)
 
     @t.override
     def __repr__(self) -> str:
@@ -80,9 +91,10 @@ class BaseOperation[ParametersType, ResultType](Entity):
         """What a caller needs to run the operation: the runner checks it."""
         return self._get_permissions()
 
+    @abc.abstractmethod
     def _get_permissions(self) -> "Permissions":
-        """The constant of the class; an operation needing more overrides it."""
-        return self.PERMISSIONS
+        """What a caller needs, built by the permissions of a unit."""
+        raise NotImplementedError(f"{type(self).__qualname__}._get_permissions")
 
     @abc.abstractmethod
     async def _run(
@@ -94,18 +106,3 @@ class BaseOperation[ParametersType, ResultType](Entity):
         same ``metadata``.
         """
         raise NotImplementedError(f"{type(self).__qualname__}._run")
-
-
-def _check_permissions(cls: "type[BaseOperation[t.Any, t.Any]]") -> None:
-    # once, when the class is created: a class with an abstract method left
-    # is a base, completed by its subclasses, which are checked in turn
-    complete = not any(
-        getattr(getattr(cls, name, None), "__isabstractmethod__", False)
-        for name in dir(cls)
-    )
-    overridden = cls._get_permissions is not BaseOperation._get_permissions
-    if complete and not overridden and not hasattr(cls, "PERMISSIONS"):
-        raise TypeError(
-            f"{cls.__qualname__} declares no PERMISSIONS: Permissions() for "
-            f"none, or _get_permissions()"
-        )

@@ -7,30 +7,43 @@ the operations themselves: those live in the units of their domains.
 
 An operation is a {py:class}`~ingots.defaults.operations.BaseOperation`,
 typed by its parameters and its result, named `*Operation` (ADR 0014 of the
-ecosystem). It declares the permissions a caller needs and runs in the hook
-`_run()`:
+ecosystem). It builds the permissions a caller needs in the hook
+`_get_permissions()` and runs in the hook `_run()`; the unit owning it
+binds the flags of the permissions:
 
 ```python
 import typing as t
 
-from ingots.defaults.operations import BaseOperation, PermissionFlags, Permissions
+from ingots.defaults.operations import (
+    BaseOperation,
+    OperationsOwner,
+    PermissionFlags,
+    Permissions,
+    PermissionsSlot,
+)
 from ingots.puer import Factory, Unit
 
 
-class Shop(PermissionFlags, domain="shop"):
-    PAY = 1 << 0
-    REFUND = 1 << 1
-
-
 class PayOperation(BaseOperation[PayParameters, Receipt]):
-    PERMISSIONS = Permissions(Shop.PAY)
+    parent: "ShopUnit"
+
+    @t.override
+    def _get_permissions(self) -> Permissions:
+        permissions = self.parent.permissions
+        return permissions(permissions.flags.PAY)
 
     @t.override
     async def _run(self, parameters, metadata):
         ...
 
 
-class ShopUnit(Unit):
+class ShopUnit(OperationsOwner, Unit):
+    class Flags(PermissionFlags):
+        PAY = 1 << 0
+        REFUND = 1 << 1
+
+    permissions = PermissionsSlot(Flags)
+
     pay = Factory(PayOperation)
 ```
 
@@ -88,20 +101,35 @@ another gave:
 
 ```python
 class AppCallers(CallersProvider):
+    project: "AppProject"
+
     @t.override
     def _get_anonymous_permissions(self) -> Permissions:
-        return super()._get_anonymous_permissions() | Permissions(Shop.PAY)
+        shop = self.project.shop.permissions
+        return super()._get_anonymous_permissions() | shop(shop.flags.PAY)
 ```
 
 `Permissions` are immutable too, a bit mask per domain: `|` merges two,
 `-` takes one out of the other, `has()` tells whether they cover others.
-They take the flags of domains and the masks by domain, as a database or
-another service holds them: `dict(permissions)` gives
-`{"shop": 3, "stock": 1}` back, and `Permissions(data)` takes it.
+They take the masks by domain, as a database or another service holds
+them: `dict(permissions)` gives `{"shop": 3, "shop.stock": 1}` back, and
+`Permissions(data)` takes it. A flag alone tells no domain: the
+permissions of its unit build its mask.
 
-The flags of a domain are a
-{py:class}`~ingots.defaults.operations.PermissionFlags`, naming its
-domain. Its masks outlive a run and travel between services, so a flag
+The flags of a unit are a
+{py:class}`~ingots.defaults.operations.PermissionFlags`, nested in the unit
+or next to it, and the unit, an
+{py:class}`~ingots.defaults.operations.OperationsOwner` as it owns
+operations, binds them by its slot `permissions`, a
+{py:class}`~ingots.defaults.operations.PermissionsSlot`: no name is given
+to their domain, it is the full name of the unit, `shop`, `shop.stock`, and
+a unit placed twice is of two domains. On the class the slot gives the
+enum, `ShopUnit.permissions.flags`; on a unit its
+{py:class}`~ingots.defaults.operations.BoundPermissions`, created once,
+`flags` and `domain`, called with flags for their mask,
+`project.shop.permissions(ShopUnit.Flags.PAY)`, `{"shop": 1}`. The slot is
+`permissions` of every unit: one enum a unit, a second set of flags of a
+sub-unit. The masks outlive a run and travel between services, so a flag
 keeps its bit across versions:
 
 - A bit is given explicitly; `auto()`, numbering the flags in their order,
@@ -109,7 +137,7 @@ keeps its bit across versions:
   a flag renamed keeps it.
 - A flag is one bit of its own: two flags of one bit, an alias to `enum`,
   would grant one with the other, and raise `ValueError`. A group of flags
-  is a constant outside the class, `SHOP_MANAGE = Shop.PAY | Shop.REFUND`.
+  is a constant outside the class, `MANAGE = Flags.PAY | Flags.REFUND`.
 - A domain has 31 bits, `PERMISSION_BITS`: its mask fits a signed 32-bit
   integer of any database or protocol. A wider flag or mask raises
   `ValueError`.
@@ -121,26 +149,46 @@ A subclass of the checker in its slot, `checker = Slot(...)`, decides in
 
 ## The permissions of an operation
 
-What a caller needs is `get_permissions()` of the operation. By default it
-gives the constant `PERMISSIONS`, built once a process and readable from
-the class. An operation whose permissions depend on its project overrides
-the hook `_get_permissions()` instead, computed on every run, the project
-narrowed as everywhere:
+What a caller needs is `get_permissions()` of the operation, of its hook
+`_get_permissions()`, abstract: it builds them by the permissions of the
+unit it reaches, its parent narrowed as the project is, `parent:
+"ShopUnit"`, or the nearest parent of a kind, `self.find_parent(ShopUnit)`,
+an operation of a sub-unit owning no flags reaching those above it;
+`Permissions()` for none. mypy checks it all: the flags, of the enum of
+that unit, and the hook itself, an operation forgetting it refused where a
+factory takes it, as abstract; run anyway, it is refused to all, the root
+too. The hook reads the project too, computed on every run:
 
 ```python
 class RefundOperation(BaseOperation[RefundParameters, Receipt]):
     project: "ShopProject"
+    parent: "ShopUnit"
 
     @t.override
     def _get_permissions(self) -> Permissions:
+        permissions = self.parent.permissions
         if self.project.settings.configs.SHOP_REFUNDS_RESTRICTED:
-            return Permissions(Shop.REFUND | Shop.MANAGE)
-        return Permissions(Shop.REFUND)
+            return permissions(permissions.flags.REFUND, permissions.flags.MANAGE)
+        return permissions(permissions.flags.REFUND)
 ```
 
-A complete operation declares one or the other, `Permissions()` for none:
-one that declares neither raises `TypeError` when its class is created. A
-base with an abstract method left is not checked, its subclasses are.
+An operation builds the permissions of its own domain only. One of several
+modules, an integration, has a flag of its own and adds the permissions of
+the operations of the other domains it runs, not their flags, so that a
+caller lacking them is refused before anything is done, and each domain
+decides its own; the roles across domains are of the groups of an addon of
+the access:
+
+```python
+class SellOperation(BaseOperation[SaleParameters, Receipt]):
+    parent: "ShopUnit"
+
+    @t.override
+    def _get_permissions(self) -> Permissions:
+        permissions = self.parent.permissions
+        move = self.parent.stock.move()
+        return permissions(permissions.flags.SELL) | move.get_permissions()
+```
 
 ## Commands running an operation
 

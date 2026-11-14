@@ -11,7 +11,7 @@ from ingots.puer import Slot
 
 from tests import TestCase
 
-from .operations_fixtures import PayParameters, Shop, ShopProject, Stock
+from .operations_fixtures import PAY, READ, PayParameters, ShopProject
 
 
 class ShopCallers(CallersProvider):
@@ -19,7 +19,7 @@ class ShopCallers(CallersProvider):
 
     @t.override
     def _get_anonymous_permissions(self) -> Permissions:
-        return super()._get_anonymous_permissions() | Permissions(Shop.PAY)
+        return super()._get_anonymous_permissions() | PAY
 
 
 class StockCallers(CallersProvider):
@@ -27,7 +27,7 @@ class StockCallers(CallersProvider):
 
     @t.override
     def _get_anonymous_permissions(self) -> Permissions:
-        return super()._get_anonymous_permissions() | Permissions(Stock.READ)
+        return super()._get_anonymous_permissions() | READ
 
 
 class AppCallers(ShopCallers, StockCallers):
@@ -54,7 +54,7 @@ class CallersTestCase(TestCase):
         anonymous = project.operations.callers.get_anonymous()
         self.assertEqual(
             anonymous,
-            Caller(uid="anonymous", permissions=Permissions(Shop.PAY, Stock.READ)),
+            Caller(uid="anonymous", permissions=PAY | READ),
         )
         metadata = project.operations.create_metadata(anonymous)
         run = project.operations.run(project.shop.pay, PayParameters(5), metadata)
