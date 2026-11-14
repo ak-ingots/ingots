@@ -4,9 +4,7 @@ of their caller.
 """
 
 __all__ = (
-    "ANONYMOUS_CALLER",
     "PERMISSION_BITS",
-    "ROOT_CALLER",
     "BaseOperation",
     "BaseOperationCommand",
     "Caller",
@@ -26,7 +24,7 @@ import typing as t
 
 from ingots.puer import Slot, Unit
 
-from .callers import ANONYMOUS_CALLER, ROOT_CALLER, Caller, CallersProvider
+from .callers import Caller, CallersProvider
 from .checker import PermissionsChecker
 from .commands import BaseOperationCommand
 from .errors import OperationPermissionsError

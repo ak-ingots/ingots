@@ -1,6 +1,6 @@
 """The callers: who runs an operation, and those every project has."""
 
-__all__ = ("ANONYMOUS_CALLER", "ROOT_CALLER", "Caller", "CallersProvider")
+__all__ = ("Caller", "CallersProvider")
 
 import typing as t
 from dataclasses import dataclass
@@ -50,21 +50,3 @@ class CallersProvider(Entity):
     def _get_anonymous_permissions(self) -> Permissions:
         """What anyone may: nothing here, a subclass adding to its base."""
         return Permissions()
-
-
-ANONYMOUS_CALLER: t.Final = Caller(uid="anonymous")
-"""
-A caller without permissions.
-
-.. deprecated:: 0.33.2
-   ``operations.callers.get_anonymous()``, with what the application gives
-   anyone; removed in 0.34.
-"""
-
-ROOT_CALLER: t.Final = CallersProvider.ROOT
-"""
-A caller running any operation: a command of the administrator, a test.
-
-.. deprecated:: 0.33.2
-   ``operations.callers.ROOT``; removed in 0.34.
-"""
