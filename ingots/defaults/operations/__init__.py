@@ -7,16 +7,19 @@ __all__ = (
     "PERMISSION_BITS",
     "BaseOperation",
     "BaseOperationCommand",
+    "BoundPermissions",
     "Caller",
     "CallersProvider",
     "OperationMetadata",
     "OperationPermissionsError",
+    "OperationsOwner",
     "OperationsResults",
     "OperationsUnit",
     "OperationsRunner",
     "PermissionFlags",
     "Permissions",
     "PermissionsChecker",
+    "PermissionsSlot",
 )
 
 import os
@@ -28,8 +31,14 @@ from .callers import Caller, CallersProvider
 from .checker import PermissionsChecker
 from .commands import BaseOperationCommand
 from .errors import OperationPermissionsError
-from .operation import BaseOperation, OperationMetadata
-from .permissions import PERMISSION_BITS, PermissionFlags, Permissions
+from .operation import BaseOperation, OperationMetadata, OperationsOwner
+from .permissions import (
+    PERMISSION_BITS,
+    BoundPermissions,
+    PermissionFlags,
+    Permissions,
+    PermissionsSlot,
+)
 from .results import OperationsResults
 from .runner import OperationsRunner
 

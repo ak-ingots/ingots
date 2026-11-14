@@ -1,13 +1,27 @@
-"""The permissions: bit masks by domain, of a caller or of an operation."""
+"""
+The permissions: bit masks by domain, of a caller or of an operation; the
+flags of a unit, bound by its slot ``permissions``, its full name their
+domain.
+"""
 
-__all__ = ("PERMISSION_BITS", "PermissionFlags", "Permissions")
+__all__ = (
+    "PERMISSION_BITS",
+    "BoundPermissions",
+    "PermissionFlags",
+    "Permissions",
+    "PermissionsSlot",
+)
 
 import enum
 import typing as t
 from collections.abc import Mapping
 
+from ingots.puer.slots import BaseSlot
+
 if t.TYPE_CHECKING:
     from collections.abc import Iterator
+
+    from ingots.puer import Entity
 
 PERMISSION_BITS: t.Final = 31
 """The bits of a domain: its mask fits a signed 32-bit integer anywhere."""
@@ -15,25 +29,28 @@ PERMISSION_BITS: t.Final = 31
 
 class PermissionFlags(enum.IntFlag, boundary=enum.KEEP):
     """
-    The flags of a domain, the base of its permissions::
+    The flags of a unit, the base of its permissions, nested in it or next
+    to it, bound by its slot ``permissions``, :class:`PermissionsSlot`,
+    which gives them their domain, the full name of the unit::
 
-        class Shop(PermissionFlags, domain="shop"):
-            PAY = 1 << 0
-            REFUND = 1 << 1
+        class ShopUnit(OperationsOwner, Unit):
+            class Flags(PermissionFlags):
+                PAY = 1 << 0
+                REFUND = 1 << 1
 
-    Its masks are stored and sent between services, so a flag keeps its
+            permissions = PermissionsSlot(Flags)
+
+    Their masks are stored and sent between services, so a flag keeps its
     bit: it is given explicitly, ``auto()`` raises ``TypeError``, and a bit
     of a flag removed is not given to another. A flag is one bit of its
-    own: a group of them is a constant outside, ``Shop.PAY | Shop.REFUND``.
-    A mask holding a bit it does not know, of a newer version of the
-    domain, keeps it.
+    own: a group of them is a constant outside, ``Flags.PAY | Flags.REFUND``.
+    A mask holding a bit it does not know, of a newer version of the unit,
+    keeps it.
 
     :raises TypeError: a flag is ``auto()``.
     :raises ValueError: a flag is not one of the :data:`PERMISSION_BITS`, or
-        is the bit of another flag of the domain.
+        is the bit of another flag of the enum.
     """
-
-    DOMAIN: t.ClassVar[str]
 
     @t.override
     @staticmethod
@@ -44,20 +61,20 @@ class PermissionFlags(enum.IntFlag, boundary=enum.KEEP):
 
     @t.override
     @classmethod
-    def __init_subclass__(cls, *, domain: str, **kwargs: t.Any) -> None:
+    def __init_subclass__(cls, **kwargs: t.Any) -> None:
         super().__init_subclass__(**kwargs)
         _check_flags(cls)
-        cls.DOMAIN = domain
 
 
 class Permissions(Mapping[str, int]):
     """
     The permissions of a caller, or those an operation requires: a bit mask
-    per domain. It merges the flags and the masks it is given, the masks
-    by domain as a database or another service holds them::
+    per domain. It merges the masks by domain it is given, as a database or
+    another service holds them; a flag alone tells no domain, the
+    permissions of its unit build its mask::
 
-        Permissions(Shop.PAY | Shop.REFUND, Stock.READ)
-        Permissions({"shop": 3, "stock": 1})
+        Permissions({"shop": 3, "shop.stock": 1})
+        project.shop.permissions(ShopUnit.Flags.PAY)  # {"shop": 1}
 
     Immutable: ``|`` merges two, ``-`` takes the flags of one out of the
     other, :meth:`has` tells whether one covers the other. A domain without
@@ -68,15 +85,10 @@ class Permissions(Mapping[str, int]):
 
     __slots__ = ("_masks",)
 
-    def __init__(self, *items: "PermissionFlags | Mapping[str, int]") -> None:
+    def __init__(self, *items: Mapping[str, int]) -> None:
         masks: dict[str, int] = {}
         for item in items:
-            pairs = (
-                [(item.DOMAIN, int(item))]
-                if isinstance(item, PermissionFlags)
-                else item.items()
-            )
-            for domain, mask in pairs:
+            for domain, mask in item.items():
                 masks[domain] = masks.get(domain, 0) | _check_mask(domain, int(mask))
         self._masks = {domain: mask for domain, mask in masks.items() if mask}
 
@@ -113,6 +125,87 @@ class Permissions(Mapping[str, int]):
             self._masks.get(domain, 0) & mask == mask
             for domain, mask in required.items()
         )
+
+
+class BoundPermissions[FlagsType: PermissionFlags]:
+    """
+    The permissions of a unit: its :attr:`flags`, the enum, and its
+    :attr:`domain`, its full name; called with flags, their mask there::
+
+        permissions = self.parent.permissions
+        permissions(permissions.flags.PAY)  # {"shop": 1}
+    """
+
+    __slots__ = ("_domain", "_flags")
+
+    def __init__(self, flags: type[FlagsType], domain: str) -> None:
+        self._flags = flags
+        self._domain = domain
+
+    @property
+    def flags(self) -> type[FlagsType]:
+        """The flags of the unit, the enum."""
+        return self._flags
+
+    @property
+    def domain(self) -> str:
+        """The domain of the masks, the full name of the unit."""
+        return self._domain
+
+    def __call__(self, *flags: FlagsType) -> Permissions:
+        """The mask of flags of the unit, in its domain."""
+        mask = 0
+        for flag in flags:
+            mask |= int(flag)
+        return Permissions({self._domain: mask})
+
+    @t.override
+    def __repr__(self) -> str:
+        flags = self._flags.__qualname__
+        return f"{type(self).__qualname__}({flags}, {self._domain!r})"
+
+
+class PermissionsSlot[FlagsType: PermissionFlags](BaseSlot[t.Any]):
+    """
+    The slot binding the flags of a unit, ``permissions`` of a unit owning
+    operations: on the class the slot, :attr:`flags` the enum; on the unit
+    its :class:`BoundPermissions`, of the domain of its full name, created
+    once a unit, as a factory gives its bound factory. The slot is
+    ``permissions`` of every unit, so one enum a unit: a second set of
+    flags is of a sub-unit.
+    """
+
+    def __init__(self, flags: type[FlagsType]) -> None:
+        self._flags = flags
+
+    @property
+    def flags(self) -> type[FlagsType]:
+        """The flags it binds, the enum."""
+        return self._flags
+
+    @t.overload
+    def __get__(self, obj: None, owner: type) -> t.Self: ...
+
+    @t.overload
+    def __get__(self, obj: "Entity", owner: type) -> BoundPermissions[FlagsType]: ...
+
+    @t.final
+    def __get__(
+        self, obj: "Entity | None", owner: type
+    ) -> "t.Self | BoundPermissions[FlagsType]":
+        if obj is None:
+            return self
+        try:
+            bound: BoundPermissions[FlagsType] = obj.__dict__[self._key]
+        except KeyError:
+            bound = obj.__dict__[self._key] = BoundPermissions(
+                self._flags, obj.full_name
+            )
+        return bound
+
+    @t.override
+    def __repr__(self) -> str:
+        return f"{type(self).__qualname__}({self._flags.__qualname__})"
 
 
 def _check_flags(flags_cls: type[PermissionFlags]) -> None:
