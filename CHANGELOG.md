@@ -5,6 +5,42 @@ are the previous implementation.
 
 <!-- towncrier release notes start -->
 
+## [0.34.0] - 2026-11-14
+### Changed
+- An entity is created by its owner, the slot or the factory of its
+  attribute, `create_entity()` of the slot: its place first, then its
+  `__init__`, which takes nothing now, the place known in it. An entity knows
+  its `parents`, weak references from the project to the owner of its slot,
+  `project` the first and `parent` the last, its `name`, that of the slot,
+  its `full_name`, the dotted path from the project, built once, and
+  `find_parent(kind)`, the nearest parent of a kind. An `__init__` taking the
+  project, `super().__init__(project)`, moves to `__init__(self)`, and an
+  entity made out of the slots, `Entity(project)`, to
+  `create_entity(cls, parent)`, at the name of its class by default. A kind
+  of slot gives its entities more before their `__init__` by the hook
+  `_prepare_entity()`. No entity is created for a project gone. A component
+  is named in the messages by its full name.
+- The permissions are of the units owning operations: `PermissionFlags`
+  takes no `domain=` now, its flags nested in the unit or next to it, bound
+  by its slot `permissions`, a `PermissionsSlot`, in a unit mixing
+  `OperationsOwner` in; their domain is the full name of the unit, and a unit
+  placed twice is of two domains. On the class the slot gives the enum,
+  `flags`; on a unit a `BoundPermissions`, created once, `flags` and
+  `domain`, called with flags for their mask. `Permissions` takes masks by
+  domain only, a flag alone telling no domain. An operation declares no
+  constant `PERMISSIONS` any more: its hook `_get_permissions()`, abstract,
+  builds them by the permissions of the unit it reaches, its parent
+  narrowed, so that mypy checks the flags and the hook, an operation
+  forgetting it refused where a factory takes it; run anyway, it is refused
+  to all. An integration adds the permissions of the operations it runs.
+
+### Removed
+- The constants `ROOT_CALLER` and `ANONYMOUS_CALLER` of
+  `ingots.defaults.operations`, deprecated since 0.33.2: the root is
+  `operations.callers.ROOT`, the anonymous caller
+  `operations.callers.get_anonymous()`, with what the application gives
+  anyone.
+
 ## [0.33.2] - 2026-11-13
 ### Added
 - The callers every project has, `operations.callers`, a `CallersProvider`:
