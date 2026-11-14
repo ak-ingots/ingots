@@ -54,7 +54,7 @@ class Factory[EntityType: Entity](BaseClassSlot[EntityType]):
     ) -> "t.Self | BoundFactory[EntityType]":
         if obj is None:
             return self
-        return BoundFactory(self._cls, obj)
+        return BoundFactory(self, obj)
 
 
 @t.final
@@ -65,10 +65,12 @@ class BoundFactory[EntityType: Entity]:
     the class attributes of an operation to check its caller first.
     """
 
-    __slots__ = ("_cls", "_owner")
+    __slots__ = ("_cls", "_factory", "_owner")
 
-    def __init__(self, cls: type[EntityType], owner: SlotsOwner) -> None:
-        self._cls = cls
+    def __init__(self, factory: Factory[EntityType], owner: SlotsOwner) -> None:
+        self._cls = factory.cls
+        # the factory creates, its type aside: a bound factory is covariant
+        self._factory: Factory[t.Any] = factory
         self._owner = owner
 
     @property
@@ -77,7 +79,8 @@ class BoundFactory[EntityType: Entity]:
         return self._cls
 
     def __call__(self) -> EntityType:
-        return self._cls(self._owner._slots_get_project())
+        entity: EntityType = self._factory.create_entity(self._cls, self._owner)
+        return entity
 
     @t.override
     def __repr__(self) -> str:
@@ -128,7 +131,7 @@ class Factories[EntityType: Entity](BaseClassesSlot[EntityType]):
     ) -> "t.Self | BoundFactories[EntityType]":
         if obj is None:
             return self
-        return BoundFactories(self._classes, obj)
+        return BoundFactories(self, obj)
 
 
 @t.final
@@ -139,12 +142,12 @@ class BoundFactories[EntityType: Entity]:
     before creating any.
     """
 
-    __slots__ = ("_classes", "_owner")
+    __slots__ = ("_classes", "_factories", "_owner")
 
-    def __init__(
-        self, classes: tuple[type[EntityType], ...], owner: SlotsOwner
-    ) -> None:
-        self._classes = classes
+    def __init__(self, factories: Factories[EntityType], owner: SlotsOwner) -> None:
+        self._classes = factories.classes
+        # the factories create, their type aside: bound ones are covariant
+        self._factories: Factories[t.Any] = factories
         self._owner = owner
 
     @property
@@ -153,8 +156,11 @@ class BoundFactories[EntityType: Entity]:
         return self._classes
 
     def __call__(self) -> tuple[EntityType, ...]:
-        project = self._owner._slots_get_project()
-        return tuple(cls(project) for cls in self._classes)
+        factories, owner = self._factories, self._owner
+        entities: tuple[EntityType, ...] = tuple(
+            factories.create_entity(cls, owner) for cls in self._classes
+        )
+        return entities
 
     @t.override
     def __repr__(self) -> str:

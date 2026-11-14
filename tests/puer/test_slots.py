@@ -12,6 +12,7 @@ from ingots.puer import (
     Project,
     Slot,
     Unit,
+    create_entity,
 )
 from ingots.puer.slots import BaseClassSlot
 
@@ -204,7 +205,7 @@ class SlotsOwnerTestCase(unittest.TestCase):
         self.assertEqual(p.slots_find_path(entity), "pkg1_unit.sub_unit.entity")
         self.assertEqual(p.slots_find_path(p.pkg1_unit), "pkg1_unit")
         with self.assertRaisesRegex(LookupError, "^no slot of .* holds "):
-            p.slots_find_path(AppEntity(p))
+            p.slots_find_path(create_entity(AppEntity, p))
 
     def test_a_wrong_path_creates_nothing(self) -> None:
         p = AppProject()
@@ -314,7 +315,7 @@ class FactoryTestCase(unittest.TestCase):
             run = Factory(LoggedRun)
 
         p = RunsProject()
-        self.assertIsInstance(AppRuns(p).run(), LoggedRun)
+        self.assertIsInstance(create_entity(AppRuns, p).run(), LoggedRun)
 
     def test_a_factory_and_a_slot_do_not_replace_each_other(self) -> None:
         with self.assertRaisesRegex(TypeError, r"ToSlot\.run = Slot\(Run\)"):
@@ -389,7 +390,7 @@ class FactoriesTestCase(unittest.TestCase):
 
         self.assertEqual(AppGroups.runs.classes, (Run, LoggedRun))
         p = GroupsProject()
-        runs = AppGroups(p).runs()
+        runs = create_entity(AppGroups, p).runs()
         self.assertEqual([type(entity) for entity in runs], [Run, LoggedRun])
 
     def test_a_group_and_a_factory_do_not_replace_each_other(self) -> None:

@@ -25,7 +25,7 @@ Unit
 Entity
 : The workhorse: the object that does the work of the system - talks to a
   database, handles a request, computes a result. An entity reaches the rest
-  of the system through its project.
+  of the system through its project and its parents.
 
 Runner
 : Drives a project: creates it, configures it, runs a workflow (a command,
@@ -93,6 +93,37 @@ one kind of entity, typed by that kind, and create nothing on the way.
 - `project.slots_find_path(entity)` gives the path of an entity created
   under it.
 
+## The place of an entity
+
+An entity is created by its owner, the slot or the factory of its
+attribute, by {py:meth}`~ingots.puer.slots.BaseSlot.create_entity`: its place
+first, then its `__init__`, which takes nothing and has the place already.
+The place is the parents, from the project to the owner of the slot, and the
+name of the slot:
+
+- `entity.parents`, `(project, project.storage)`; `entity.project`, the
+  first, `entity.parent`, the last;
+- `entity.name`, `"repository"`, and `entity.full_name`, the dotted path from
+  the project, `"storage.repository"`, built once; a unit in two slots has two
+  full names, an entity of a factory the full name of the factory;
+- `entity.find_parent(Storage)`, the nearest of the parents of a kind,
+  typed by it, `LookupError` if none is.
+
+```python
+class Repository(Entity):
+    parent: "Storage"  # narrowed, as the project is
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.table = self.full_name.replace(".", "_")  # the place is known
+```
+
+A kind of slot gives its entities more before their `__init__` by the hook
+{py:meth}`~ingots.puer.slots.BaseSlot._prepare_entity`, their place set. An
+entity out of the slots, a component made once, an entity of a test, is
+created by {py:func}`~ingots.puer.create_entity` under a parent, at the name
+of its class by default: `create_entity(Repository, project.storage)`.
+
 ## Customization
 
 A subclass customizes a child by declaring its slot again with a subclass of
@@ -115,11 +146,12 @@ class AppProject(StorageProject):
 
 `AppProject().storage.repository` is a `CachedRepository`, and mypy knows it.
 An entity that needs more than its own addon's project narrows the type of its
-back-reference with an annotation:
+back-reference with an annotation, and of its parent so:
 
 ```python
 class CachedRepository(Repository):
     project: "AppProject"  # the application's neighbours are visible and typed
+    parent: "AppStorage"
 ```
 
 ## Combining addons
@@ -145,15 +177,18 @@ naming the slot and the bases, not in production.
 
 ## Lifetime
 
-Entities hold their project through a weak reference: the tree has no
-reference cycles, and a project dies as soon as its holder drops it.
+Entities hold their parents, the project first, through weak references:
+the tree has no reference cycles, and a project dies as soon as its holder
+drops it.
 
 - Someone must hold the project. `AppProject().storage.repository` fails with
-  `ReferenceError`: the temporary project is gone before the second dot.
+  `ReferenceError`: the temporary project is gone before the second dot, and
+  no entity is created for a project gone.
 - An entity that outlives its project keeps its own state, but reaching for
-  the project raises `ReferenceError`.
-- `entity.project` is for immediate use. Kept in an attribute or a callback
-  (`self.project.method` binds the project), it keeps the project alive.
+  the project or a parent raises `ReferenceError`.
+- `entity.project` and `entity.parent` are for immediate use. Kept in an
+  attribute or a callback (`self.project.method` binds the project), they
+  keep the project alive.
 
 ## The runner
 

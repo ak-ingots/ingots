@@ -13,9 +13,8 @@ from .base import BaseClassSlot, BaseSlot
 from .entity import Slot
 
 if t.TYPE_CHECKING:
+    import weakref
     from collections.abc import Iterator
-
-    from ingots.puer.project import Project
 
 
 class SlotsOwner:
@@ -156,9 +155,17 @@ class SlotsOwner:
         raise LookupError(f"no slot of {self!r} holds {entity!r}")
 
     @abc.abstractmethod
-    def _slots_get_project(self) -> "Project":
-        """The project the entities of this owner's slots belong to."""
-        raise NotImplementedError(f"{type(self).__qualname__}._slots_get_project")
+    def _slots_get_parents(self) -> "tuple[weakref.ref[SlotsOwner], ...]":
+        """
+        The parents of the entities of this owner's slots, weak references
+        from the project to the owner.
+        """
+        raise NotImplementedError(f"{type(self).__qualname__}._slots_get_parents")
+
+    @abc.abstractmethod
+    def _slots_get_full_name(self) -> str:
+        """The dotted path of the owner from the project, empty for the project."""
+        raise NotImplementedError(f"{type(self).__qualname__}._slots_get_full_name")
 
 
 def check_slots(cls: type[SlotsOwner]) -> None:

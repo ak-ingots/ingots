@@ -3,7 +3,7 @@ import contextlib
 import typing as t
 from collections.abc import Iterator
 
-from ingots.puer import Component, Project, ProjectState
+from ingots.puer import Component, Project, ProjectState, create_entity
 from ingots.puer.components import is_configured
 
 from tests import TestCase
@@ -161,7 +161,7 @@ class ShutDownTestCase(TestCase):
     def test_a_component_outside_the_slots_shuts_down_too(self) -> None:
         async def use() -> None:
             project = ComponentsProject()
-            await Store(project)
+            await create_entity(Store, project)
             await project._do_shut_down()
 
         asyncio.run(use())
@@ -197,7 +197,7 @@ class ShutDownTestCase(TestCase):
             with self.assertRaisesRegex(
                 RuntimeError, "^Store: the project is shut down"
             ):
-                await Store(project)  # named by its class outside the slots
+                await create_entity(Store, project)  # named by its class
 
         asyncio.run(use())
 
