@@ -18,11 +18,12 @@ __all__ = (
     "Slot",
     "SlotsOwner",
     "Unit",
+    "create_entity",
 )
 
 from .components import Component
 from .constants import ProjectState
-from .entity import Entity
+from .entity import Entity, create_entity
 from .project import Project
 from .runner import BaseRunner
 from .slots import BoundFactories, BoundFactory, Factories, Factory, Slot, SlotsOwner

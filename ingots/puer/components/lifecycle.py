@@ -132,8 +132,5 @@ def is_configured(component: Component) -> bool:
 
 
 def _describe(component: Component) -> str:
-    # the path of the component in its project, found when a message needs it
-    try:
-        return component.project.slots_find_path(component)
-    except LookupError:
-        return type(component).__qualname__
+    # the path of the component in its project, its class out of the slots
+    return component.full_name

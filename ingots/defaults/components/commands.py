@@ -60,8 +60,8 @@ class RunComponentsForeverCommand(BaseCommand):
     def _cli_build_args(cls, namespace: argparse.Namespace) -> RunForeverCliArgs:
         return RunForeverCliArgs(tuple(namespace.run_forever_components))
 
-    def __init__(self, project: "Project") -> None:
-        super().__init__(project)
+    def __init__(self) -> None:
+        super().__init__()
         self._stopped = asyncio.Event()
 
     @t.override

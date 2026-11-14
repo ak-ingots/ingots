@@ -14,7 +14,6 @@ from ingots.defaults.operations import (
     Permissions,
     PermissionsChecker,
 )
-from ingots.defaults import Project
 from ingots.defaults.operations.runner import RUN_UID
 from ingots.puer import Factories, Factory, Slot
 
@@ -51,8 +50,8 @@ def create_recording_project(created: list[PayOperation]) -> ShopProject:
     """A project whose shop records every payment it creates in ``created``."""
 
     class RecordedPay(PayOperation):
-        def __init__(self, project: Project) -> None:
-            super().__init__(project)
+        def __init__(self) -> None:
+            super().__init__()
             created.append(self)
 
     class RecordingShop(ShopUnit):

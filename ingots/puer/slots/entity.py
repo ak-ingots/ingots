@@ -36,7 +36,7 @@ class Slot[EntityType: Entity](BaseClassSlot[EntityType]):
         try:
             entity: EntityType = obj.__dict__[self._key]
         except KeyError:
-            entity = obj.__dict__[self._key] = self._cls(obj._slots_get_project())
+            entity = obj.__dict__[self._key] = self.create_entity(self._cls, obj)
         return entity
 
     @t.override

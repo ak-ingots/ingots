@@ -7,6 +7,8 @@ __all__ = ("BaseClassesSlot", "BaseClassSlot", "BaseSlot")
 
 import typing as t
 
+from ingots.puer.entity import create_entity
+
 if t.TYPE_CHECKING:
     from collections.abc import Iterator
 
@@ -19,11 +21,12 @@ class BaseSlot[EntityType: Entity]:
     """
     Children of a project or a unit, declared on its class: the rules of its
     replacement in a subclass. A kind of slot gives what it holds on the
-    instance with ``__get__``. It holds one class, :class:`BaseClassSlot`,
-    or several, :class:`BaseClassesSlot`.
+    instance with ``__get__``, each entity created by :meth:`create_entity`.
+    It holds one class, :class:`BaseClassSlot`, or several,
+    :class:`BaseClassesSlot`.
 
-    A kind of slot extends it through the hooks: :meth:`_iter_entities`,
-    :meth:`_extends`.
+    A kind of slot extends it through the hooks: :meth:`_prepare_entity`,
+    :meth:`_iter_entities`, :meth:`_extends`.
     """
 
     def __set_name__(self, owner: type, name: str) -> None:
@@ -38,6 +41,29 @@ class BaseSlot[EntityType: Entity]:
     @t.final
     def __set__(self, obj: "SlotsOwner", value: t.Never) -> t.NoReturn:
         raise AttributeError(f"{self._name} is a slot: declare it again in a subclass")
+
+    @t.final
+    def create_entity(self, cls: type[EntityType], parent: "SlotsOwner") -> EntityType:
+        """
+        An entity of the slot under a parent, its owner: its place first, the
+        parents of the parent and the name of the slot, then what the kind of
+        slot gives it, :meth:`_prepare_entity`, then its ``__init__``, which
+        has them all.
+
+        :raises ReferenceError: the project is gone.
+        """
+        return create_entity(
+            cls,
+            parent,
+            self._name,
+            before_init=lambda entity: self._prepare_entity(entity, parent),
+        )
+
+    def _prepare_entity(self, entity: EntityType, parent: "SlotsOwner") -> None:
+        """
+        What the kind of slot gives its entities before their ``__init__``,
+        their place set: nothing here.
+        """
 
     def _extends(self, base: "BaseSlot[t.Any]") -> bool:
         """Whether this slot may replace ``base`` in a subclass: of the same kind."""

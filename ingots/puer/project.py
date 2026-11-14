@@ -3,6 +3,7 @@
 __all__ = ("Project",)
 
 import typing as t
+import weakref
 
 from .components import ComponentsOwner
 from .constants import ProjectState
@@ -58,5 +59,9 @@ class Project(SlotsOwner, ComponentsOwner):
         """
 
     @t.override
-    def _slots_get_project(self) -> "Project":
-        return self
+    def _slots_get_parents(self) -> "tuple[weakref.ref[SlotsOwner], ...]":
+        return (weakref.ref(self),)
+
+    @t.override
+    def _slots_get_full_name(self) -> str:
+        return ""

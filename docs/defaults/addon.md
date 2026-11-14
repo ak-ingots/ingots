@@ -57,8 +57,8 @@ class ServeCommand(BaseCommand):
     cli_description = "Serves HTTP until stopped."
     project: "HttpProject"
 
-    def __init__(self, project: "HttpProject") -> None:
-        super().__init__(project)
+    def __init__(self) -> None:
+        super().__init__()
         self._stopped = asyncio.Event()
 
     async def _run(self) -> None:
