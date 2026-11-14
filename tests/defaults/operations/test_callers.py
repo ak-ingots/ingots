@@ -2,8 +2,6 @@ import asyncio
 import typing as t
 
 from ingots.defaults.operations import (
-    ANONYMOUS_CALLER,
-    ROOT_CALLER,
     Caller,
     CallersProvider,
     OperationsUnit,
@@ -48,8 +46,8 @@ class CallersTestCase(TestCase):
     def test_a_project_has_the_root_and_the_anonymous_one(self) -> None:
         project = ShopProject()
         callers = project.operations.callers
-        self.assertIs(callers.ROOT, ROOT_CALLER)
-        self.assertEqual(callers.get_anonymous(), ANONYMOUS_CALLER)
+        self.assertTrue(callers.ROOT.is_root)
+        self.assertEqual(callers.get_anonymous(), Caller(uid="anonymous"))
 
     def test_each_subclass_adds_to_what_anyone_may(self) -> None:
         project = AppProject()

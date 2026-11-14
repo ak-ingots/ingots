@@ -1,11 +1,10 @@
 import dataclasses
 import enum
 import pickle
+import typing as t
 
 from ingots.defaults.operations import (
-    ANONYMOUS_CALLER,
     PERMISSION_BITS,
-    ROOT_CALLER,
     Caller,
     OperationPermissionsError,
     PermissionFlags,
@@ -15,6 +14,8 @@ from ingots.defaults.operations import (
 from tests import TestCase
 
 from .operations_fixtures import Shop, Stock
+
+ANONYMOUS: t.Final = Caller(uid="anonymous")
 
 
 class PermissionFlagsTestCase(TestCase):
@@ -107,18 +108,13 @@ class CallerTestCase(TestCase):
         other = dataclasses.replace(caller, permissions=Permissions())
         self.assertEqual(other, Caller(uid="u1"))
 
-    def test_the_root_and_the_anonymous(self) -> None:
-        self.assertTrue(ROOT_CALLER.is_root)
-        self.assertFalse(ANONYMOUS_CALLER.is_root)
-        self.assertEqual(ANONYMOUS_CALLER.permissions, Permissions())
-
 
 class ErrorTestCase(TestCase):
     def test_the_error_survives_pickling(self) -> None:
         required = Permissions(Shop.PAY)
-        error = OperationPermissionsError.for_caller(ANONYMOUS_CALLER, "r1", required)
+        error = OperationPermissionsError.for_caller(ANONYMOUS, "r1", required)
         copy = pickle.loads(pickle.dumps(error))
         self.assertEqual(str(copy), "anonymous lacks the permissions of the operation")
-        self.assertEqual(copy.caller, ANONYMOUS_CALLER)
+        self.assertEqual(copy.caller, ANONYMOUS)
         self.assertEqual(copy.run_uid, "r1")
         self.assertEqual(copy.required, required)

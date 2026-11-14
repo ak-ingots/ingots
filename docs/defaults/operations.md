@@ -93,11 +93,6 @@ class AppCallers(CallersProvider):
         return super()._get_anonymous_permissions() | Permissions(Shop.PAY)
 ```
 
-The constants `ROOT_CALLER` and `ANONYMOUS_CALLER` are deprecated since
-0.33.2, removed in 0.34: the root is `operations.callers.ROOT`, the
-anonymous caller `operations.callers.get_anonymous()`, which has what the
-application gives anyone.
-
 `Permissions` are immutable too, a bit mask per domain: `|` merges two,
 `-` takes one out of the other, `has()` tells whether they cover others.
 They take the flags of domains and the masks by domain, as a database or

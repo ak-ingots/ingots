@@ -4,10 +4,9 @@ import logging
 import typing as t
 
 from ingots.defaults.operations import (
-    ANONYMOUS_CALLER,
-    ROOT_CALLER,
     BaseOperation,
     Caller,
+    CallersProvider,
     OperationMetadata,
     OperationPermissionsError,
     OperationsResults,
@@ -39,6 +38,7 @@ from .operations_fixtures import (
 )
 
 LOGGER = "ingots.defaults.operations"
+ANONYMOUS: t.Final = Caller(uid="anonymous")
 PAYER: t.Final = Caller(uid="payer", permissions=Permissions(Shop.PAY))
 REFUNDER: t.Final = Caller(uid="refunder", permissions=Permissions(Shop.REFUND))
 CHECKER: t.Final = Caller(
@@ -219,7 +219,7 @@ class RunTestCase(OperationsTestCase):
                 self.runner.run(
                     self.project.shop.ping,
                     None,
-                    self.create_metadata(ANONYMOUS_CALLER),
+                    self.create_metadata(ANONYMOUS),
                 )
             )
         self.assertEqual(
@@ -304,7 +304,7 @@ class RunGroupTestCase(OperationsTestCase):
                 self.runner.run_group(
                     self.project.shop.handshake,
                     asyncio.Event(),
-                    self.create_metadata(ANONYMOUS_CALLER),
+                    self.create_metadata(ANONYMOUS),
                 ),
                 1,
             )
@@ -364,7 +364,7 @@ class RunGroupTestCase(OperationsTestCase):
         run = project.operations.runner.run_group(
             project.shop.handshake,
             asyncio.Event(),
-            project.operations.create_metadata(ANONYMOUS_CALLER),
+            project.operations.create_metadata(ANONYMOUS),
         )
         with self.assertLogs(LOGGER, "INFO"):
             with self.assertRaises(asyncio.CancelledError):
@@ -386,7 +386,7 @@ class RunGroupTestCase(OperationsTestCase):
                 project.operations.runner.run_group(
                     project.shop.sleeps,
                     None,
-                    project.operations.create_metadata(ANONYMOUS_CALLER),
+                    project.operations.create_metadata(ANONYMOUS),
                 )
             )
             await asyncio.sleep(0.01)
@@ -408,7 +408,7 @@ class RunGroupTestCase(OperationsTestCase):
         run = project.operations.runner.run_group(
             project.shop.checks,
             PayParameters(5),
-            project.operations.create_metadata(ANONYMOUS_CALLER),
+            project.operations.create_metadata(ANONYMOUS),
         )
         with self.assertNoLogs(LOGGER, "INFO"):
             results = asyncio.run(run)
@@ -452,7 +452,7 @@ class PermissionsCheckTestCase(OperationsTestCase):
                 self.runner.run(
                     self.project.shop.pay,
                     PayParameters(5),
-                    self.create_metadata(ROOT_CALLER),
+                    self.create_metadata(CallersProvider.ROOT),
                 )
             )
         self.assertEqual(receipt.caller_uid, "root")
@@ -463,7 +463,7 @@ class PermissionsCheckTestCase(OperationsTestCase):
                 self.runner.run(
                     self.project.shop.ping,
                     None,
-                    self.create_metadata(ANONYMOUS_CALLER),
+                    self.create_metadata(ANONYMOUS),
                 )
             )
         self.assertEqual(pong, "pong")
@@ -561,7 +561,7 @@ class CustomizationTestCase(TestCase):
         run = project.operations.runner.run(
             project.shop.pay,
             PayParameters(5),
-            project.operations.create_metadata(ANONYMOUS_CALLER),
+            project.operations.create_metadata(ANONYMOUS),
         )
         with self.assertLogs(LOGGER, "INFO"):
             receipt = asyncio.run(run)
@@ -576,7 +576,5 @@ class CustomizationTestCase(TestCase):
         class AppProject(ShopProject):
             operations = Slot(AppOperationsUnit)
 
-        metadata = AppProject().operations.create_metadata(ANONYMOUS_CALLER)
-        self.assertEqual(
-            metadata, OperationMetadata(caller=ANONYMOUS_CALLER, run_uid="run-1")
-        )
+        metadata = AppProject().operations.create_metadata(ANONYMOUS)
+        self.assertEqual(metadata, OperationMetadata(caller=ANONYMOUS, run_uid="run-1"))
