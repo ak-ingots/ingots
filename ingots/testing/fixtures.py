@@ -10,6 +10,10 @@ import unittest
 
 from ingots.defaults import Project, ProjectCliArgs
 
+from .commands import RunTestsCommand, get_package
+from .errors import OutsideRunError
+from .project import TestingProject
+
 if t.TYPE_CHECKING:
     from collections.abc import Iterator, Mapping
 
@@ -28,7 +32,10 @@ class ProjectFixture[ProjectType: Project]:
 
     The project is configured by :data:`FIXTURE_CONFIGS`, then ``configs``,
     as ``--config`` gives them, never by the environment of its prefix,
-    hidden while it is configured::
+    hidden while it is configured. While ``testing run`` of a project of
+    its class runs, it is configured as the command is, by the environment
+    and the command line, ``configs`` winning; a
+    :class:`~ingots.testing.TestingProject` is tested by that command only::
 
         class CacheTestCase(ProjectTestCase):
             project = ProjectFixture(AppProject, configs={"HTTP_PORT": "18080"})
@@ -73,11 +80,22 @@ class ProjectFixture[ProjectType: Project]:
         before the project is configured, so a failed configuring releases
         what it got.
         """
+        run = RunTestsCommand.get_run(self.cls)
+        if run is None and issubclass(self.cls, TestingProject):
+            raise OutsideRunError.for_package(get_package(self.cls).__name__)
         project = self.cls()
         case.addAsyncCleanup(project._do_shut_down)
-        configs = {**FIXTURE_CONFIGS, **self.configs}
-        project._cli_set_args(ProjectCliArgs(configs=tuple(configs.items())))
-        with hide_env(project.env_configs_prefix):
+        # what the test needs wins, then what every test needs, then the run
+        configs = {
+            **dict(run.configs if run else ()),
+            **FIXTURE_CONFIGS,
+            **self.configs,
+        }
+        files = run.configs_files if run else ()
+        project._cli_set_args(
+            ProjectCliArgs(configs=tuple(configs.items()), configs_files=files)
+        )
+        with contextlib.nullcontext() if run else hide_env(project.env_configs_prefix):
             await project._configure()
         return project
 
