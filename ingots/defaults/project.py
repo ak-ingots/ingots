@@ -32,7 +32,8 @@ class Project(CliProject):
     """
     The project an application starts from: a command-line project with the
     standard units. Configuring it configures the units in their order:
-    the settings, then the logging from the configs; shutting it down shuts
+    the settings, then the logging from the configs unless
+    ``IS_CONFIGURE_LOGGING`` is off; shutting it down shuts
     down the components it configured.
 
     The environment variables of the configs take :attr:`env_configs_prefix`:
@@ -97,4 +98,5 @@ class Project(CliProject):
     async def _configure(self) -> None:
         await super()._configure()
         await self.settings.configure()
-        await self.logging.configure()
+        if self.settings.configs.IS_CONFIGURE_LOGGING:
+            await self.logging.configure()

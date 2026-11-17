@@ -21,6 +21,7 @@ the settings and the logging. The API may still change between minor versions.
   line; the components.
 - {doc}`defaults/index`: the standard units: the settings, the logging and
   the components.
+- {doc}`testing`: the project of a test case, a fixture.
 - {doc}`reference/index`: the Python API.
 - {doc}`contributing`: the development workflow.
 - {doc}`changelog`.
@@ -37,6 +38,13 @@ concepts/index
 :caption: Defaults
 
 defaults/index
+```
+
+```{toctree}
+:hidden:
+:caption: Testing
+
+testing
 ```
 
 ```{toctree}

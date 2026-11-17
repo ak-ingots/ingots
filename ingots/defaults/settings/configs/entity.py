@@ -33,7 +33,9 @@ class Configs(Entity):
     the configs are frozen.
 
     ``IS_PRINT_CONFIGS`` prints the configs once applied; ``IS_STRICT_CONFIGS``
-    fails the configuration on a wrong override instead of ignoring it. The
+    fails the configuration on a wrong override instead of ignoring it.
+    ``IS_CONFIGURE_LOGGING`` off leaves the logging of the process to its
+    owner, a test run or a server embedding the project. The
     ``LOGGING_*`` configs are those of the logging unit: the ``default``
     handler serves the root logger, the ``ingots`` handler the ``ingots``
     logger, which does not propagate; both add the log context,
@@ -45,6 +47,7 @@ class Configs(Entity):
 
     IS_PRINT_CONFIGS = BoolConfig(True)
     IS_STRICT_CONFIGS = BoolConfig(False)
+    IS_CONFIGURE_LOGGING = BoolConfig(True)
 
     LOGGING_DISABLE_EXISTING_LOGGERS = BoolConfig(False)
     LOGGING_DEFAULT_FORMAT = StrConfig(_LOGGING_FORMAT)

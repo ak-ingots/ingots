@@ -77,6 +77,7 @@ class ConfigsTestCase(TestCase):
                 "HTTP_BIND",
                 "HTTP_PORT",
                 "HTTP_TOKEN",
+                "IS_CONFIGURE_LOGGING",
                 "IS_PRINT_CONFIGS",
                 "IS_STRICT_CONFIGS",
                 "LOGGING_DEFAULT_FORMAT",
@@ -87,8 +88,8 @@ class ConfigsTestCase(TestCase):
                 "LOGGING_ROOT_LOGGER_LEVEL",
             ],
         )
-        self.assertIs(configs[5], HttpConfigs.IS_PRINT_CONFIGS)
-        self.assertIsNot(configs[5], Configs.IS_PRINT_CONFIGS)
+        self.assertIs(configs[6], HttpConfigs.IS_PRINT_CONFIGS)
+        self.assertIsNot(configs[6], Configs.IS_PRINT_CONFIGS)
 
 
 class SettingsTestCase(TestCase):
@@ -113,7 +114,7 @@ class SettingsTestCase(TestCase):
             self.run_project(AppProject, "settings", "list"),
             PRINTED.replace("9090", "8080")
             .replace("FAST", "SAFE")
-            .replace("= True", "= False"),
+            .replace("PRINT_CONFIGS = True", "PRINT_CONFIGS = False"),
         )
 
 
@@ -124,6 +125,7 @@ DB_NAME = app
 HTTP_BIND = ('localhost', 8080)
 HTTP_PORT = 9090
 HTTP_TOKEN = ***
+IS_CONFIGURE_LOGGING = True
 IS_PRINT_CONFIGS = True
 IS_STRICT_CONFIGS = False
 LOGGING_DEFAULT_FORMAT = {Configs.LOGGING_DEFAULT_FORMAT.default}
