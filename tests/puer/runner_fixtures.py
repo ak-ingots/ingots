@@ -10,7 +10,7 @@ import signal
 import typing as t
 import weakref
 
-from ingots.puer import BaseRunner, Project
+from ingots.puer import BaseRunner, Project, UserError
 
 # what happened during a run: the project is gone when the run returns
 EVENTS: list[str] = []
@@ -78,6 +78,12 @@ class FailingRunner(RecordingRunner):
     @t.override
     async def _run_workflow(self) -> int:
         raise RuntimeError("boom")
+
+
+class MistakenRunner(RecordingRunner):
+    @t.override
+    async def _run_workflow(self) -> int:
+        raise UserError("no such file: a.txt")
 
 
 class ServingRunner(RecordingRunner):

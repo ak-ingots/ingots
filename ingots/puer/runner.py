@@ -1,6 +1,6 @@
 """The runner: drives a project through its life."""
 
-__all__ = ("BaseRunner",)
+__all__ = ("BaseRunner", "UserError")
 
 import abc
 import asyncio
@@ -34,6 +34,9 @@ class BaseRunner:
     2. the second cancels the current stage at once;
     3. the third kills the process with the signal, as if there were no
        runner.
+
+    A stage failing logs its error with its traceback, a :class:`UserError`
+    by its message alone.
 
     A subclass implements the workflow: :meth:`_run_workflow`, and
     :meth:`_stop_workflow` when it can stop without being cancelled. It sets
@@ -135,6 +138,9 @@ class BaseRunner:
                 raise  # the run itself is cancelled, not only the stage
             logger.warning("%s was cancelled", name)
             raise _StageFailed(name) from None
+        except UserError as error:
+            logger.error("%s failed: %s", name, error)
+            raise _StageFailed(name) from None
         except Exception as error:
             logger.exception("%s failed: %r", name, error)
             raise _StageFailed(name) from None
@@ -175,6 +181,14 @@ class BaseRunner:
         asyncio.get_running_loop().remove_signal_handler(sig)
         signal.signal(sig, signal.SIG_DFL)
         os.kill(os.getpid(), sig)
+
+
+class UserError(Exception):
+    """
+    A mistake of the user of the application, not of its code: a wrong
+    config, a missing file. Its message tells it all, so a runner logs no
+    traceback for it. A subclass keeps the message its first argument.
+    """
 
 
 class _StageFailed(Exception):

@@ -107,15 +107,14 @@ mode itself that does not convert counts as strict.
 
 Every problem is logged, a warning when ignored and an error when strict;
 the {py:class}`~ingots.defaults.settings.ConfigsError` keeps them in
-`problems`:
+`problems`. It is a {py:class}`~ingots.puer.UserError`, a mistake of the
+user, not of the code: the runner logs its message, no traceback, and exits
+with 1:
 
 ```console
 $ APP_IS_STRICT_CONFIGS=1 app --config HTTP_PORT=x serve
-the command line: HTTP_PORT: 'x' is not an int
-configuring failed
-Traceback (most recent call last):
-  ...
-ingots.defaults.settings.ConfigsError: 1 wrong override of the configs
+ERROR ▶ the command line: HTTP_PORT: 'x' is not an int ▶ ...
+ERROR ▶ configuring failed: 1 wrong override of the configs ▶ ...
 ```
 
 A source of another kind, a secrets store for example, is a loader in a

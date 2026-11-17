@@ -242,3 +242,8 @@ is cancelled may leave resources behind, and the cancelling is logged.
 
 The exit code is the workflow's, 1 when a stage fails or is cancelled; a
 killed process reports the signal.
+
+A failed stage is logged with its traceback, a
+{py:class}`~ingots.puer.UserError` by its message alone: a mistake of the
+user of the application, a wrong config or a missing file, which the
+traceback would not explain better.
