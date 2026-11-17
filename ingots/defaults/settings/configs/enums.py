@@ -11,7 +11,11 @@ from .standard import IntConfig
 
 
 class EnumConfig[EnumType: enum.Enum](BaseConfig[EnumType]):
-    """A member of the enum of its default. Converts a member name."""
+    """
+    A member of the enum of its default. Converts a member name in any
+    case, ``none`` for ``NONE``; the exact name first, so that an enum of
+    names differing in case only takes them exactly.
+    """
 
     @t.override
     def validate(self, value: object) -> None:
@@ -30,10 +34,20 @@ class EnumConfig[EnumType: enum.Enum](BaseConfig[EnumType]):
             try:
                 return enum_cls[data]
             except KeyError:
-                raise ValueError(
-                    f"{self.name}: {self._show(data)} is not "
-                    f"a member of {enum_cls.__qualname__}"
-                ) from None
+                pass
+            folded = data.casefold()
+            members = {
+                member
+                for name, member in enum_cls.__members__.items()
+                if name.casefold() == folded
+            }
+            if len(members) == 1:
+                return members.pop()
+            raise ValueError(
+                f"{self.name}: {self._show(data)} is "
+                f"{"an ambiguous name" if members else "not a member"} "
+                f"of {enum_cls.__qualname__}"
+            )
         self._reject(data)
 
 
