@@ -336,11 +336,10 @@ class SettingsLoadingTestCase(LoaderTestCase):
             [record.getMessage() for record in logs.records],
             [
                 "the command line: HTTP_PORT: 'x' is not an int",
-                "configuring failed: ConfigsError('1 wrong override of the configs', "
-                "(\"the command line: HTTP_PORT: 'x' is not an int\",))",
+                "configuring failed: 1 wrong override of the configs",
             ],
         )
-        self.assertIn("1 wrong override of the configs", logs.output[1])
+        self.assertIsNone(logs.records[1].exc_info)  # a user error: no traceback
 
     def test_a_project_adds_options_of_its_own(self) -> None:
         parsed = CliParser(VerboseProject, CommandRunner).parse(

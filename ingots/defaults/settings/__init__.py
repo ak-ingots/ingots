@@ -6,7 +6,7 @@ import inspect
 import logging
 import typing as t
 
-from ingots.puer import Slot
+from ingots.puer import Slot, UserError
 from ingots.puer.cli import CliUnit
 
 from .commands import ListConfigsCommand
@@ -121,9 +121,11 @@ class SettingsUnit(CliUnit):
         return name in sources or self.configs.IS_STRICT_CONFIGS
 
 
-class ConfigsError(Exception):
+class ConfigsError(UserError):
     """
-    The overrides of the configs are wrong. ``args`` are the message and
+    The overrides of the configs are wrong: a
+    :class:`~ingots.puer.UserError`, a runner logs its message, the
+    problems logged before it. ``args`` are the message and
     the problems, so the error survives pickling; create it with
     :meth:`from_problems`.
     """
