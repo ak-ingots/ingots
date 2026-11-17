@@ -61,3 +61,40 @@ class RedisSessionsCacheTestCase(
 ):
     pass
 ```
+
+## The tests of an application
+
+The scenarios of an application, a client of it run against it, are a
+project of their own, a {py:class}`~ingots.testing.TestingProject`: its
+command `testing run` runs the tests of its package, configured as any
+project is, by the environment of its prefix, `--config` and
+`--configs-file`; the fixtures of its class take what the command took,
+their own configs winning:
+
+```python
+class ScenariosProject(TestingProject, GrpcProject):
+    env_configs_prefix = "GAME_TEST"
+    settings = Slot(ScenariosSettingsUnit)
+    grpc = Slot(ScenariosGrpcUnit)  # a client of the application
+
+
+class SignUpScenario(ProjectTestCase):
+    project = ProjectFixture(ScenariosProject)
+```
+
+```console
+$ GAME_TEST_GRPC_DEFAULT_PORT=50061 python -m scenarios testing run -k sign_up -v
+```
+
+- `testing run` takes the options of unittest: the tests by their names,
+  `test_play.PlayScenario`, relative to the package; `-k` patterns; `-v`;
+  `--failfast`. A failed run exits with 1, the count of the failures
+  logged, no traceback: unittest told them above.
+- The tests run in a thread of their own: each test case runs its own
+  event loop, not the one of the command.
+- A fixture of a `TestingProject` outside its command raises
+  {py:class}`~ingots.testing.OutsideRunError`, telling the command:
+  `python -m unittest` would configure it with the defaults and fail far
+  from the cause.
+- The logging of the process is the command's: the project of the command
+  configures it, the projects of the scenarios do not.
