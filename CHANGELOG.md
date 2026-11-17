@@ -5,6 +5,13 @@ are the previous implementation.
 
 <!-- towncrier release notes start -->
 
+## [0.35.1] - 2026-11-17
+### Added
+- `ingots.testing.TestingProject`, a project whose tests run by its own
+  command, `testing run`, configured as the project is, its fixtures taking
+  what the command took; the options of unittest, `-k`, `-v`, `--failfast`
+  and the names of the tests; `TestsFailedError` and `OutsideRunError`.
+
 ## [0.35.0] - 2026-11-17
 ### Added
 - `ingots.testing`: `ProjectFixture` and `ProjectTestCase`, the project of a
