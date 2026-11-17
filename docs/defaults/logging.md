@@ -60,6 +60,9 @@ class AppProject(Project):
 
 The logging is global to the process: configuring a second project in it
 replaces the logging of the first.
+`IS_CONFIGURE_LOGGING` off leaves the logging of the process to its owner:
+a test run, as the projects of {doc}`../testing` do, or a server embedding
+the project.
 
 ## The log context
 

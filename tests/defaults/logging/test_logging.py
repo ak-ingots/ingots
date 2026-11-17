@@ -105,6 +105,13 @@ class LoggingTestCase(TestCase):
             audit_line, r"^\S+ \S+ ▶ WARNING ▶ audited ▶ test_audit:\d+ ▶ \S+ ▶ -$"
         )
 
+    def test_configuring_leaves_the_logging_alone_when_told(self) -> None:
+        os.environ["TEST_IS_CONFIGURE_LOGGING"] = "off"
+        project = self.create_project()
+        with mock.patch("logging.config.dictConfig") as dict_config:
+            asyncio.run(project._configure())
+        dict_config.assert_not_called()
+
     def test_the_info_command_prints_the_configuration(self) -> None:
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
