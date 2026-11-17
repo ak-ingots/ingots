@@ -5,6 +5,17 @@ are the previous implementation.
 
 <!-- towncrier release notes start -->
 
+## [0.35.0] - 2026-11-17
+### Added
+- `ingots.testing`: `ProjectFixture` and `ProjectTestCase`, the project of a
+  test case created and configured for each test in its event loop, by its own
+  configs, not by the environment, and shut down after it; the config
+  `IS_CONFIGURE_LOGGING`, off leaving the logging of the process to its owner.
+
+### Changed
+- A `ConfigsError`, now a `UserError` of `ingots.puer`, fails a run by its message, no traceback: a runner logs a user error so.
+- `EnumConfig` takes a member name in any case, `none` for `NONE`; a name matching several members only by case is ambiguous.
+
 ## [0.34.0] - 2026-11-14
 ### Changed
 - An entity is created by its owner, the slot or the factory of its
