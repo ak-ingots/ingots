@@ -18,6 +18,7 @@ __all__ = (
     "Slot",
     "SlotsOwner",
     "Unit",
+    "UserError",
     "create_entity",
 )
 
@@ -25,6 +26,6 @@ from .components import Component
 from .constants import ProjectState
 from .entity import Entity, create_entity
 from .project import Project
-from .runner import BaseRunner
+from .runner import BaseRunner, UserError
 from .slots import BoundFactories, BoundFactory, Factories, Factory, Slot, SlotsOwner
 from .unit import Unit

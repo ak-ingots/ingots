@@ -17,6 +17,7 @@ from .runner_fixtures import (
     FailingRunner,
     FailingShutDownProject,
     HangingProject,
+    MistakenRunner,
     ObstinateRunner,
     RecordingRunner,
     ServingRunner,
@@ -45,6 +46,16 @@ class StagesTestCase(RunnerTestCase):
             self.assertEqual(FailingRunner().run(), 1)
         self.assertEqual(EVENTS, ["configure", "shut down"])
         self.assertIn("the workflow failed", logs.output[0])
+
+    def test_a_user_error_is_logged_by_its_message(self) -> None:
+        with self.assertLogs("ingots.puer.runner", "ERROR") as logs:
+            self.assertEqual(MistakenRunner().run(), 1)
+        self.assertEqual(EVENTS, ["configure", "shut down"])
+        [record] = logs.records
+        self.assertEqual(
+            record.getMessage(), "the workflow failed: no such file: a.txt"
+        )
+        self.assertIsNone(record.exc_info)
 
     def test_a_failing_shut_down_exits_with_1(self) -> None:
         with self.assertLogs("ingots.puer.runner", "ERROR") as logs:
