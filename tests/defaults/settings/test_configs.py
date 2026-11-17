@@ -1,5 +1,6 @@
 import datetime
 import decimal
+import enum
 import logging
 import typing as t
 
@@ -22,6 +23,13 @@ from ingots.defaults.settings.configs import (
 from tests import TestCase
 
 from .settings_fixtures import Mode
+
+
+class Cased(enum.Enum):
+    LOWER = 2
+    lower = 1
+    alias = 1
+
 
 NOON = datetime.time(12, 30)
 DAY = datetime.date(2026, 10, 19)
@@ -110,9 +118,18 @@ class ConfigTestCase(TestCase):
 
     def test_enum(self) -> None:
         config = EnumConfig(Mode.SAFE)
-        self.assert_converts(config, (Mode.FAST, Mode.FAST), ("FAST", Mode.FAST))
-        self.assert_rejects(config, ValueError, "fast", "SLOW")
+        self.assert_converts(
+            config, (Mode.FAST, Mode.FAST), ("FAST", Mode.FAST), ("fast", Mode.FAST)
+        )
+        self.assert_rejects(config, ValueError, "SLOW", "safe ")
         self.assert_rejects(config, TypeError, 1)
+
+    def test_enum_of_names_differing_in_case(self) -> None:
+        config = EnumConfig(Cased.lower)
+        self.assert_converts(config, ("lower", Cased.lower), ("LOWER", Cased.LOWER))
+        with self.assertRaisesRegex(ValueError, "'Lower' is an ambiguous name"):
+            config.deserialize("Lower")
+        self.assert_converts(config, ("alias", Cased.lower), ("ALIAS", Cased.lower))
 
     def test_log_level(self) -> None:
         config = LogLevelConfig(logging.INFO)
