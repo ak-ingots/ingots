@@ -10,6 +10,7 @@ __all__ = (
     "EnumConfig",
     "FloatConfig",
     "IntConfig",
+    "ListConfig",
     "LogLevelConfig",
     "SecureStrConfig",
     "StrConfig",
@@ -31,5 +32,5 @@ from .standard import (
     SecureStrConfig,
     StrConfig,
 )
-from .structural import TupleConfig
+from .structural import ListConfig, TupleConfig
 from .temporal import DateConfig, DateTimeConfig, TimeConfig

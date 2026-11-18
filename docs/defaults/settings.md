@@ -52,8 +52,9 @@ class AppProject(HttpProject, DbProject):
 - The types: `BoolConfig`, `IntConfig`, `FloatConfig`, `DecimalConfig`,
   `StrConfig`, `SecureStrConfig` (printed as `***`), `DateConfig`,
   `TimeConfig`, `DateTimeConfig` (ISO 8601), `EnumConfig` (by member name, in any case),
-  `LogLevelConfig` (by level name) and `TupleConfig` (shaped as its default,
-  a JSON array in a string). A config of another type extends
+  `LogLevelConfig` (by level name), `TupleConfig` (shaped as its default,
+  a JSON array in a string) and `ListConfig` (items of one type, as many as
+  given: `ListConfig(int, (1, 2, 4))`, a JSON array in a string). A config of another type extends
   {py:class}`~ingots.defaults.settings.configs.base.BaseConfig`: `validate()` checks a
   value, `_parse()` converts the data of a source.
 - A default is checked when the class is created; a subclass of the configs

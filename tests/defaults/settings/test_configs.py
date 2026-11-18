@@ -17,6 +17,7 @@ from ingots.defaults.settings.configs import (
     SecureStrConfig,
     StrConfig,
     TimeConfig,
+    ListConfig,
     TupleConfig,
 )
 
@@ -151,6 +152,23 @@ class ConfigTestCase(TestCase):
             config, TypeError, '["example.org"]', '[80, "example.org"]', 80
         )
 
+    def test_list(self) -> None:
+        config = ListConfig(int, (1, 2, 4))
+        self.assert_converts(
+            config,
+            ((1, 256), (1, 256)),
+            ("[1, 2, 4, 8, 16]", (1, 2, 4, 8, 16)),
+            ([], ()),
+            ([8], (8,)),
+        )
+        self.assert_rejects(config, ValueError, "[oops")
+        self.assert_rejects(config, TypeError, '["1"]', "[true]", "[1.5]", 8)
+        self.assertEqual(repr(config), "ListConfig(int, (1, 2, 4))")
+        self.assertIs(config.item_type, int)
+
+    def test_list_of_bools(self) -> None:
+        self.assert_converts(ListConfig(bool), ("[true, false]", (True, False)))
+
 
 class ValidateTestCase(TestCase):
     """Each config takes a value of its type only."""
@@ -167,6 +185,7 @@ class ValidateTestCase(TestCase):
             (DateTimeConfig(MOMENT), DAY),
             (EnumConfig(Mode.SAFE), "SAFE"),
             (TupleConfig(("localhost", 8080)), ["localhost", 8080]),
+            (ListConfig(int), [1, 2]),
         ]
         for config, value in configs:
             with self.subTest(config=config), self.assertRaises(TypeError):
