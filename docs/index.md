@@ -22,6 +22,7 @@ the settings and the logging. The API may still change between minor versions.
 - {doc}`defaults/index`: the standard units: the settings, the logging and
   the components.
 - {doc}`testing`: the project of a test case, a fixture.
+- {doc}`perf`: the load of a project, its scenarios and points.
 - {doc}`reference/index`: the Python API.
 - {doc}`contributing`: the development workflow.
 - {doc}`changelog`.
@@ -45,6 +46,7 @@ defaults/index
 :caption: Testing
 
 testing
+perf
 ```
 
 ```{toctree}

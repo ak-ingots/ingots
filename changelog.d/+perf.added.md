@@ -1,0 +1,1 @@
+The load of a project, `ingots.perf`: a scenario a module giving its `PerfProject` with the unit `perf`, its `LoadGroup` of `LoadClient`s, its `CsvSeed`; the commands `perf plan`, `seed`, `point`, `smoke` against a target up.
