@@ -7,6 +7,7 @@ import json
 import math
 import os
 import pathlib
+import shutil
 import sys
 import tempfile
 import time
@@ -20,6 +21,7 @@ from ingots.perf import (
     LoadGroup,
     PerfUnit,
     Recorder,
+    ReportRow,
     ScenarioModuleError,
     SmokeFailedError,
     find_configs_files,
@@ -147,17 +149,24 @@ class PlanTestCase(PerfTestCase):
 
 class SeedTestCase(PerfTestCase):
     def test_the_rows_of_the_largest_point_typed_back(self) -> None:
-        with contextlib.chdir(self.work):
-            code, _, _ = self.run_perf(
-                "duel", "seed", PERF_GROUPS="[1, 3]", PERF_WORK="."
-            )
-            self.assertEqual(code, 0)
-            with open("seed.csv", newline="") as file:
-                rows = list(csv.DictReader(file))
-            self.assertEqual(len(rows), 3)
-            self.assertEqual(list(rows[0]), ["inviter", "invitee", "rank", "is_ranked"])
-            project: t.Any = load_scenario(SCENARIOS / "duel.py")()
-            pairs = project.perf.seed.read()
+        # a copy of the stand: its relative paths, its default work, are of it
+        stand = pathlib.Path(shutil.copytree(STAND, self.work / "stand"))
+        duel = stand / "scenarios/duel.py"
+        argv = [
+            "--config",
+            "IS_CONFIGURE_LOGGING=off",
+            "--config",
+            "IS_PRINT_CONFIGS=off",
+        ]
+        argv += ["--config", "PERF_GROUPS=[1, 3]", "perf", "seed"]
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(run_scenario(duel, argv), 0)
+        with (stand / "work/seed.csv").open(newline="") as file:
+            rows = list(csv.DictReader(file))
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(list(rows[0]), ["inviter", "invitee", "rank", "is_ranked"])
+        project: t.Any = load_scenario(duel)()
+        pairs = project.perf.seed.read()
         self.assertEqual(
             [(p.rank, p.is_ranked) for p in pairs], [(0, True), (1, False), (2, True)]
         )
@@ -245,7 +254,7 @@ class LoadTestCase(PerfTestCase):
         self.assertIn("ready", told)
         part = PointPart.load(out.read_text())
         self.assertTrue(part.calls and all(c.action == "echo" for c in part.calls))
-        self.assertGreaterEqual(part.cpu, 0.0)
+        self.assertGreater(part.cpu, 0.0)  # the clients worked in the window
 
 
 class SmokeTestCase(PerfTestCase):
@@ -388,6 +397,42 @@ class PointsTestCase(TestCase):
         self.assertTrue(math.isfinite(recorder.end))
 
 
+class AnalyzeTestCase(PerfTestCase):
+    def test_the_candidate_against_the_baseline(self) -> None:
+        report = self.work / "reports/echo/r9.csv"
+        report.parent.mkdir(parents=True)
+        rows = [
+            ("baseline", 1, "echo", 8, "rps", 100),
+            ("baseline", 2, "echo", 8, "rps", 110),
+            ("candidate", 1, "echo", 8, "rps", 130),
+            ("candidate", 2, "echo", 8, "rps", 140),
+            ("baseline", 1, "echo", 8, "p50_ms", 2),
+            ("baseline", 2, "echo", 8, "p50_ms", 3),
+            ("candidate", 1, "echo", 8, "p50_ms", 2.5),
+            ("candidate", 2, "echo", 8, "p50_ms", 2.4),
+            ("candidate", 1, "echo", 8, "void", "calls 3"),
+            ("candidate", 1, "echo", 16, "rps", 150),
+            ("baseline", 1, "point", 16, "cpu_ms_per_call", 1),
+            ("candidate", 1, "point", 16, "load_cpu", 0.1),
+        ]
+        with report.open("w", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(["role", "round", "action", "groups", "metric", "value"])
+            writer.writerows(rows)
+        code, out, err = self.run_perf("echo", "analyze", "r9")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(
+            out.splitlines(),
+            [
+                "echo, r9: baseline -> candidate",
+                "echo 8 p50_ms: 2.500 -> 2.450 (-2.0%) void in candidate",
+                "echo 8 rps: 105.000 -> 135.000 (+28.6%)* void in candidate",
+                "echo 16 rps: the candidate alone",
+                "point 16 cpu_ms_per_call: the baseline alone",
+            ],
+        )
+
+
 class CsvReportTestCase(TestCase):
     def test_points_appended_and_merged_into_one_run(self) -> None:
         project = BareProject()
@@ -395,7 +440,9 @@ class CsvReportTestCase(TestCase):
         with tempfile.TemporaryDirectory() as directory:
             csv_path = pathlib.Path(directory, "run.csv")
             ini_path = pathlib.Path(directory, "run.ini")
-            row = dict.fromkeys(report.FIELDS, "x")
+            row = ReportRow(
+                role="baseline", round=1, action="a", groups=1, metric="m", value="x"
+            )
             report.append(csv_path, [row])
             report.append(csv_path, [row])
             report.write_run(
@@ -424,7 +471,7 @@ class MainTestCase(TestCase):
 
     def test_the_usage(self) -> None:
         self.assertEqual(self.run_main(), 2)
-        self.assertEqual(self.run_main("--help"), 2)
+        self.assertEqual(self.run_main("--help"), 0)
 
     def test_a_module_refused(self) -> None:
         self.assertEqual(self.run_main(str(SCENARIOS / "missing.py")), 1)

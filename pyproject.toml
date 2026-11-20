@@ -84,6 +84,10 @@ class_attributes_order = [
 strict = true
 python_version = "3.14"
 enable_error_code = ["deprecated", "explicit-override"]
+# the stand of the tests of ingots.perf: its project.py a module of its own,
+# as its scenarios import it, not of the package tests; typed through them
+mypy_path = "tests/perf/stand"
+exclude = ["^tests/perf/stand/project\\.py$"]
 
 [tool.towncrier]
 name = "Ingots"

@@ -1,6 +1,8 @@
 """The commands of the load: ``perf seed``, ``point``, ``load``, ``smoke``, ``plan``."""
 
 __all__ = (
+    "AnalyzeCliArgs",
+    "AnalyzeCommand",
     "LoadCliArgs",
     "LoadCommand",
     "PlanCommand",
@@ -27,10 +29,11 @@ from ingots.puer.cli import BaseCommand
 
 from .clients import Recorder
 from .configs import iter_perf_configs
+from .loader import get_stand
 from .errors import SmokeFailedError
 from .points import POINT_ACTION, PointPart, measure_actions, read_cgroups
 from .points import read_swap_in, show
-from .reports import show_config
+from .reports import ReportRow, show_config
 
 if t.TYPE_CHECKING:
     from collections.abc import Sequence
@@ -39,7 +42,6 @@ if t.TYPE_CHECKING:
 
     from . import PerfUnit
     from .clients import LoadClient
-    from .reports import ReportRow
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +116,7 @@ class PointCommand(BasePerfCommand):
         configs = unit._get_configs()
         groups = self.cli_args.groups
         procs = max(1, min(groups, configs.PERF_LOAD_PROCS))
-        work = Path(configs.PERF_WORK)
+        work = get_stand(self.project) / configs.PERF_WORK
         work.mkdir(parents=True, exist_ok=True)
         outs = [work / f"part-{part}.json" for part in range(procs)]
         swap_in = read_swap_in()
@@ -180,7 +182,7 @@ class PointCommand(BasePerfCommand):
         parts: list[PointPart],
         services: dict[str, float],
         swapped: int,
-    ) -> list["ReportRow"]:
+    ) -> list[ReportRow]:
         configs = self.parent._get_configs()
         duration = configs.PERF_DURATION
         calls = [call for part in parts for call in part.calls]
@@ -199,13 +201,15 @@ class PointCommand(BasePerfCommand):
             point["cpu_ms_per_call"] = show(sum(services.values()) * 1000 / succeeded)
         point["void"] = "; ".join(void)
         measured[POINT_ACTION] = point
-        common = {
-            "role": configs.PERF_ROLE,
-            "round": str(configs.PERF_ROUND),
-            "groups": str(groups),
-        }
         return [
-            common | {"action": action, "metric": metric, "value": value}
+            ReportRow(
+                role=configs.PERF_ROLE,
+                round=configs.PERF_ROUND,
+                action=action,
+                groups=groups,
+                metric=metric,
+                value=value,
+            )
             for action, metrics in measured.items()
             for metric, value in metrics.items()
         ]
@@ -302,18 +306,20 @@ async def run_clients(
         while True:
             await client.run()
 
-    async def measure_cpu() -> float:
+    # the CPU at the start of the window; at its end, once the clients are
+    # cancelled: a task ending at the deadline would be cancelled with them
+    started: list[float] = []
+
+    async def mark_start() -> None:
         await asyncio.sleep(recorder.start - time.time())
-        before = time.process_time()
-        await asyncio.sleep(recorder.end - time.time())
-        return time.process_time() - before
+        started.append(time.process_time())
 
     with contextlib.suppress(TimeoutError):
         async with asyncio.timeout_at(deadline), asyncio.TaskGroup() as tasks:
-            cpu = tasks.create_task(measure_cpu())
+            tasks.create_task(mark_start())
             for client in clients:
                 tasks.create_task(run(client))
-    return cpu.result() if cpu.done() and not cpu.cancelled() else 0.0
+    return time.process_time() - started[0] if started else 0.0
 
 
 class SmokeCommand(BasePerfCommand):
@@ -342,22 +348,59 @@ class SmokeCommand(BasePerfCommand):
             raise SmokeFailedError.for_errors(scenario, errors)
         measured = measure_actions(calls, configs.PERF_DURATION, 1)
         rows = [
-            {
-                "role": "dry",
-                "round": "1",
-                "groups": "1",
-                "action": action,
-                "metric": m,
-                "value": v,
-            }
+            ReportRow(
+                role="dry", round=1, action=action, groups=1, metric=metric, value=value
+            )
             for action, metrics in measured.items()
-            for m, v in metrics.items()
+            for metric, value in metrics.items()
         ]
-        path = Path(configs.PERF_REPORTS, "dry", scenario, f"{unit._get_run()}.csv")
+        reports = get_stand(self.project) / configs.PERF_REPORTS
+        path = reports / "dry" / scenario / f"{unit._get_run()}.csv"
         unit.report.append(path, rows)
         logger.info(
             "%s: dry, %d calls of %s", scenario, len(calls), ", ".join(measured)
         )
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class AnalyzeCliArgs:
+    """The run analyzed."""
+
+    run: str
+
+
+class AnalyzeCommand(BasePerfCommand):
+    """
+    ``perf analyze RUN``: the report of a run of the scenario, the
+    candidate against the baseline, by the analysis of the unit.
+    """
+
+    cli_name = "analyze"
+    cli_description = "Prints the candidate against the baseline in a report."
+    cli_args: AnalyzeCliArgs
+
+    @t.override
+    @classmethod
+    def _cli_prepare_parser(cls, parser: argparse.ArgumentParser) -> None:
+        parser.add_argument(
+            "perf_analyze_run",
+            metavar="RUN",
+            help="the run, the name of its report: <date>-<time>-<host>",
+        )
+
+    @t.override
+    @classmethod
+    def _cli_build_args(cls, namespace: argparse.Namespace) -> AnalyzeCliArgs:
+        return AnalyzeCliArgs(run=namespace.perf_analyze_run)
+
+    @t.override
+    async def _run(self) -> None:
+        unit = self.parent
+        reports = get_stand(self.project) / unit._get_configs().PERF_REPORTS
+        path = reports / unit._get_scenario() / f"{self.cli_args.run}.csv"
+        print(f"{unit._get_scenario()}, {self.cli_args.run}: baseline -> candidate")
+        for line in unit.analysis.analyze(unit.report.read(path)):
+            print(line)
 
 
 class PlanCommand(BasePerfCommand):

@@ -1,10 +1,11 @@
-"""An echo: a client alone, nothing seeded."""
+"""An echo: a client alone, nothing seeded, its text of the stand."""
 
 import asyncio
 import typing as t
 
 from ingots.perf import LoadClient, LoadGroup, PerfUnit
 from ingots.puer import Slot
+from project import TEXT
 
 from tests.perf.fixtures import ScenariosProject
 
@@ -13,7 +14,7 @@ class Echo(LoadClient["PerfProject", "EchoGroup"]):
     @t.override
     async def run(self) -> None:
         async with self.measure("echo"):
-            await self.project.echo.echo("hello")
+            await self.project.echo.echo(TEXT)
         pause = self.project.settings.configs.ECHO_PAUSE_MS
         await asyncio.sleep(pause / 1000)
 

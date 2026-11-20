@@ -1,10 +1,11 @@
 # The load
 
 {py:mod}`ingots.perf` is what is loaded and how, against a target already
-up: a scenario, its clients, a point of the load, its report. How a run is
-carried out on a host, the roles brought up and down, the cores, the
-rounds, is a runner's, outside the framework; it reads the configs of the
-run from `perf plan` and calls `perf seed` and `perf point`.
+up: a scenario, its clients, a point of the load, its report. How the
+target is brought up and down is its stand's; how a run is carried out on
+a host, the roles, the cores, the rounds, is a runner's; both outside the
+framework. The runner reads the configs of the run from `perf plan` and
+calls `perf seed`, `perf point` and `perf analyze`.
 
 ## A stand and its scenarios
 
@@ -14,6 +15,14 @@ of one, `reports/` the reports of the runs. A scenario is a module giving
 `PerfProject`: the project of the client it loads with the unit `perf`, a
 {py:class}`~ingots.perf.PerfUnit`, and the configs of a run,
 {py:class}`~ingots.perf.PerfConfigs`, joined to those of the client:
+
+The paths of the configs, `PERF_WORK` (`work` by default), `PERF_SEED_FILE`
+and `PERF_REPORTS` (`reports`), are of the stand when relative; a stand
+keeps `work/` and `reports/dry/` out of git. A scenario imports the
+project of its client as the stand runs it: from the directory of its
+example, say, so that the packages of the example import. The modules of
+the stand import too, `project.py` beside `scenarios/` the base they share:
+the stand is a project of its own, apart from its example.
 
 ```python
 import dataclasses
@@ -105,6 +114,12 @@ later winning.
   `PERF_CGROUPS`, `name=/sys/fs/cgroup/...`, and the swap of the host are
   read at the window. The rows go to `reports/<scenario>/<PERF_RUN>.csv`,
   the run, the host and the role to its `.ini`.
+- `perf analyze RUN`: the report of a run, the candidate against the
+  baseline, a line a point and metric: the median of the rounds of each
+  role and the change, marked `*` when the rounds of the roles do not
+  overlap; a point the baseline never measured told so, not a regression.
+  The slot `analysis` of the unit holds a
+  {py:class}`~ingots.perf.MedianAnalysis`, a scenario gives its own.
 - `perf smoke`: a point dry, in the process: a group, a run of each client;
   it fails when an action erred or none was measured. Its report goes to
   `reports/dry/`.

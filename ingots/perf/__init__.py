@@ -9,13 +9,17 @@ it the configs, ``seed`` and ``point`` do the load.
 """
 
 __all__ = (
+    "AnalyzeCliArgs",
+    "AnalyzeCommand",
     "Call",
+    "Comparison",
     "CsvReport",
     "CsvSeed",
     "LoadCliArgs",
     "LoadClient",
     "LoadCommand",
     "LoadGroup",
+    "MedianAnalysis",
     "PerfConfigs",
     "PerfUnit",
     "PlanCommand",
@@ -23,11 +27,14 @@ __all__ = (
     "PointCommand",
     "Recorder",
     "ReportRow",
+    "Rounds",
     "ScenarioModuleError",
     "SeedCommand",
+    "Series",
     "SmokeCommand",
     "SmokeFailedError",
     "find_configs_files",
+    "get_stand",
     "iter_perf_configs",
     "load_scenario",
     "run_scenario",
@@ -43,7 +50,10 @@ from ingots.puer import Slot
 from ingots.puer.cli import CliUnit
 
 from .clients import Call, LoadClient, LoadGroup, Recorder
+from .analyses import Comparison, MedianAnalysis, Rounds, Series
 from .commands import (
+    AnalyzeCliArgs,
+    AnalyzeCommand,
     LoadCliArgs,
     LoadCommand,
     PlanCommand,
@@ -54,7 +64,7 @@ from .commands import (
 )
 from .configs import PerfConfigs, iter_perf_configs
 from .errors import ScenarioModuleError, SmokeFailedError
-from .loader import find_configs_files, load_scenario, run_scenario
+from .loader import find_configs_files, get_stand, load_scenario, run_scenario
 from .reports import CsvReport, ReportRow
 from .seeds import CsvSeed
 
@@ -69,8 +79,9 @@ class PerfUnit[RowType](CliUnit):
     The unit ``perf`` of a scenario: its :attr:`group`, a
     :class:`LoadGroup` of ``RowType`` rows, what it seeds in the slot
     ``seed``, a :class:`CsvSeed` of the same rows, its report in the slot
-    ``report``; its commands ``seed``, ``point``, ``load``, ``smoke`` and
-    ``plan``. Its project's configs are :class:`PerfConfigs`.
+    ``report``, its analysis in the slot ``analysis``; its commands
+    ``seed``, ``point``, ``load``, ``smoke``, ``plan`` and ``analyze``. Its
+    project's configs are :class:`PerfConfigs`.
     """
 
     cli_description = "The load of the scenario."
@@ -78,11 +89,13 @@ class PerfUnit[RowType](CliUnit):
     group: type[LoadGroup[RowType]]
     seed: Slot[CsvSeed[RowType]] = Slot(CsvSeed)
     report = Slot(CsvReport)
+    analysis = Slot(MedianAnalysis)
     cmd_seed = Slot(SeedCommand)
     cmd_point = Slot(PointCommand)
     cmd_load = Slot(LoadCommand)
     cmd_smoke = Slot(SmokeCommand)
     cmd_plan = Slot(PlanCommand)
+    cmd_analyze = Slot(AnalyzeCommand)
 
     def __init__(self) -> None:
         super().__init__()
@@ -113,8 +126,8 @@ class PerfUnit[RowType](CliUnit):
 
     def _get_report_path(self) -> Path:
         """The report of the run, its name with no suffix."""
-        configs = self._get_configs()
-        return Path(configs.PERF_REPORTS, self._get_scenario(), self._get_run())
+        reports = get_stand(self.project) / self._get_configs().PERF_REPORTS
+        return reports / self._get_scenario() / self._get_run()
 
     async def _create_group(
         self, index: int, rows: "Sequence[RowType]", recorder: Recorder
