@@ -4,6 +4,7 @@ __all__ = ("CsvReport", "ReportRow")
 
 import configparser
 import csv
+import dataclasses
 import os
 import platform
 import typing as t
@@ -13,13 +14,26 @@ from ingots.puer import Entity
 from .configs import PerfConfigs, iter_perf_configs
 
 if t.TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping
+    from collections.abc import Iterable, Mapping, Sequence
     from pathlib import Path
 
     from ingots.defaults import Project
 
-# a row of the CSV, its fields those of the report
-ReportRow: t.TypeAlias = "dict[str, str]"
+
+@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
+class ReportRow:
+    """A row of the CSV of a report: a metric of an action at a point of a round."""
+
+    role: str
+    round: int
+    action: str
+    groups: int
+    metric: str
+    value: str
+
+
+# the columns of the CSV, the fields of its row
+FIELDS = tuple(field.name for field in dataclasses.fields(ReportRow))
 
 # the configs a point tells of its role, apart from those of the run
 ROLE_CONFIGS = frozenset(
@@ -36,17 +50,9 @@ class CsvReport(Entity):
     ``report`` of its unit.
     """
 
-    FIELDS: t.ClassVar[tuple[str, ...]] = (
-        "role",
-        "round",
-        "action",
-        "groups",
-        "metric",
-        "value",
-    )
     project: "Project"
 
-    def append_point(self, path: "Path", rows: "Iterable[Mapping[str, str]]") -> None:
+    def append_point(self, path: "Path", rows: "Iterable[ReportRow]") -> None:
         """
         The rows of a point into the report of its run, ``path`` its name
         with no suffix: the CSV appended, the INI told of the run, the host
@@ -66,15 +72,30 @@ class CsvReport(Entity):
             {"run": run, "host": host, f"role {configs.PERF_ROLE}": role},
         )
 
-    def append(self, path: "Path", rows: "Iterable[Mapping[str, str]]") -> None:
+    def append(self, path: "Path", rows: "Iterable[ReportRow]") -> None:
         """Appends the rows to the CSV, its header first when it is new."""
         path.parent.mkdir(parents=True, exist_ok=True)
         is_new = not path.exists()
         with path.open("a", newline="", encoding="utf-8") as file:
-            writer = csv.DictWriter(file, self.FIELDS)
+            writer = csv.DictWriter(file, FIELDS)
             if is_new:
                 writer.writeheader()
-            writer.writerows(rows)
+            writer.writerows(dataclasses.asdict(row) for row in rows)
+
+    def read(self, path: "Path") -> "Sequence[ReportRow]":
+        """The rows of the CSV."""
+        with path.open(newline="", encoding="utf-8") as file:
+            return [
+                ReportRow(
+                    role=row["role"],
+                    round=int(row["round"]),
+                    action=row["action"],
+                    groups=int(row["groups"]),
+                    metric=row["metric"],
+                    value=row["value"],
+                )
+                for row in csv.DictReader(file)
+            ]
 
     def write_run(
         self, path: "Path", sections: "Mapping[str, Mapping[str, str]]"

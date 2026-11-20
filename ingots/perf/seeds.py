@@ -11,6 +11,7 @@ from pathlib import Path
 from ingots.puer import Entity
 
 from .configs import PerfConfigs
+from .loader import get_stand
 
 if t.TYPE_CHECKING:
     from collections.abc import Sequence
@@ -23,9 +24,10 @@ class CsvSeed[RowType](Entity):
     What a scenario needs ahead, the players of a game, rows of a dataclass
     of ``RowType`` made by :meth:`_make` through the API of the application,
     by its client, none by default; kept in ``seed.csv`` of ``PERF_WORK``,
-    or the file of ``PERF_SEED_FILE``, their fields its header, read back by
-    their annotations. A scenario seeding gives its own in the slot ``seed``
-    of its unit: ``seed = Slot(PlayersSeed)``, ``PlayersSeed(CsvSeed[Player])``.
+    or the file of ``PERF_SEED_FILE``, paths of the stand when relative,
+    their fields its header, read back by their annotations. A scenario
+    seeding gives its own in the slot ``seed`` of its unit:
+    ``seed = Slot(PlayersSeed)``, ``PlayersSeed(CsvSeed[Player])``.
     """
 
     project: "Project"
@@ -34,7 +36,10 @@ class CsvSeed[RowType](Entity):
     def path(self) -> Path:
         """The file of the rows."""
         configs = t.cast(PerfConfigs, self.project.settings.configs)
-        return Path(configs.PERF_SEED_FILE or Path(configs.PERF_WORK, "seed.csv"))
+        stand = get_stand(self.project)
+        if configs.PERF_SEED_FILE:
+            return stand / configs.PERF_SEED_FILE
+        return stand / configs.PERF_WORK / "seed.csv"
 
     async def write(self, groups: int) -> int:
         """

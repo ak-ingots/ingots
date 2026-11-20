@@ -28,7 +28,6 @@ class PerfConfigs(Configs):
     """
 
     # the run: what the runner brings up and how many times
-    PERF_EXAMPLE = StrConfig("")
     PERF_BASELINE = StrConfig("latest")
     PERF_CANDIDATE = StrConfig("tree")
     PERF_ROUNDS = IntConfig(3)
@@ -43,8 +42,9 @@ class PerfConfigs(Configs):
     PERF_MIN_CALLS = IntConfig(20)
     PERF_MAX_LOAD_CPU = FloatConfig(0.9)
 
-    # where the files go: the seed and the parts of a point, the reports
-    PERF_WORK = StrConfig(".")
+    # where the files go, a relative path of the stand: the seed and the
+    # parts of a point, out of git, the reports
+    PERF_WORK = StrConfig("work")
     PERF_SEED_FILE = StrConfig("")
     PERF_REPORTS = StrConfig("reports")
 
