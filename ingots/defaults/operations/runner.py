@@ -145,15 +145,13 @@ class OperationsRunner(Entity):
         metadata: "OperationMetadata",
     ) -> ResultType:
         # an operation created, its caller checked, the context of the logs
-        # bound: what every run shares
-        logger.info("%r: started", operation)
+        # bound: what every run shares; a run that succeeds is logged at
+        # DEBUG alone, its cost on every call of a server
+        logger.debug("%r: started", operation)
         try:
             result = await operation._run(parameters, metadata)
         except Exception as error:
             logger.info("%r: failed: %r", operation, error)
             raise
-        if logger.isEnabledFor(logging.DEBUG):
-            logger.debug("%r: done: %r -> %r", operation, parameters, result)
-        else:
-            logger.info("%r: done", operation)
+        logger.debug("%r: done: %r -> %r", operation, parameters, result)
         return result
