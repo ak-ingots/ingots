@@ -58,5 +58,5 @@ class CallersTestCase(TestCase):
         )
         metadata = project.operations.create_metadata(anonymous)
         run = project.operations.run(project.shop.pay, PayParameters(5), metadata)
-        with self.assertLogs("ingots.defaults.operations", "INFO"):
+        with self.assertLogs("ingots.defaults.operations", "DEBUG"):
             self.assertEqual(asyncio.run(run).caller_uid, "anonymous")

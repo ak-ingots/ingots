@@ -86,8 +86,9 @@ receipt = await project.operations.run(
 - An exception of the operation is raised as it is, so its handler, a
   policy of a server for one, decides by its class; the runner logs it at
   `INFO` without its traceback, by its `repr()`: its message and its
-  context, `InsufficientFunds('insufficient funds', 500)`. `started` and `done` are logged at `INFO`,
-  with the parameters and the result at `DEBUG`.
+  context, `InsufficientFunds('insufficient funds', 500)`. A run that succeeds is
+  logged at `DEBUG` alone, `started`, then `done` with the parameters and
+  the result: a server pays no line for each of its calls.
 
 A `Caller` is immutable: its `uid`, its `Permissions` and `is_root`.
 
