@@ -5,6 +5,11 @@ are the previous implementation.
 
 <!-- towncrier release notes start -->
 
+## [0.36.0] - 2026-11-20
+### Added
+- The config `ListConfig`: items of one type, as many as given, `ListConfig(int, (1, 2, 4))`.
+- The load of a project, `ingots.perf`: a scenario a module of a stand giving its `PerfProject` with the unit `perf`, its `LoadGroup` of `LoadClient`s, its `CsvSeed`; the commands `perf plan`, `seed`, `point`, `smoke` against a target up, and `analyze`, the candidate against the baseline by `MedianAnalysis`; the configs files of the stand and of the scenario found beside the module, the relative paths of a run of the stand, its modules importing.
+
 ## [0.35.1] - 2026-11-17
 ### Added
 - `ingots.testing.TestingProject`, a project whose tests run by its own
