@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 import typing as t
 
 from ingots.defaults.operations import (
@@ -44,6 +45,14 @@ REFUNDER: t.Final = Caller(uid="refunder", permissions=REFUND)
 CHECKER: t.Final = Caller(uid="checker", permissions=PAY | READ)
 
 
+def get_steps(records: list[logging.LogRecord]) -> list[str]:
+    """The messages of the runs logged, a ``done`` told without its values."""
+    return [
+        re.sub(r": done: .*", ": done", record.getMessage(), flags=re.DOTALL)
+        for record in records
+    ]
+
+
 def create_recording_project(created: list[PayOperation]) -> ShopProject:
     """A project whose shop records every payment it creates in ``created``."""
 
@@ -74,19 +83,19 @@ class RunTestCase(OperationsTestCase):
         run = self.runner.run(
             self.project.shop.pay, PayParameters(5), self.create_metadata(PAYER)
         )
-        with self.assertLogs(LOGGER, "INFO") as logs:
+        with self.assertLogs(LOGGER, "DEBUG") as logs:
             receipt = asyncio.run(run)
         t.assert_type(receipt, Receipt)
         self.assertEqual((receipt.amount, receipt.caller_uid), (5, "payer"))
         self.assertRegex(receipt.run_uid, r"^[0-9a-f]{32}$")
         self.assertEqual(
-            [record.getMessage() for record in logs.records],
+            get_steps(logs.records),
             ["<PayOperation>: started", "<PayOperation>: done"],
         )
 
     def test_the_run_takes_the_uid_of_its_caller(self) -> None:
         metadata = self.create_metadata(PAYER, run_uid="request-1")
-        with self.assertLogs(LOGGER, "INFO"):
+        with self.assertLogs(LOGGER, "DEBUG"):
             receipt = asyncio.run(
                 self.runner.run(self.project.shop.pay, PayParameters(5), metadata)
             )
@@ -95,7 +104,7 @@ class RunTestCase(OperationsTestCase):
     def test_a_chain_of_operations_is_one_run(self) -> None:
         metadata = self.create_metadata(PAYER)
         payments = (PayParameters(1), PayParameters(2))
-        with self.assertLogs(LOGGER, "INFO") as logs:
+        with self.assertLogs(LOGGER, "DEBUG") as logs:
             receipts = asyncio.run(
                 self.runner.run(self.project.shop.checkout, payments, metadata)
             )
@@ -104,7 +113,7 @@ class RunTestCase(OperationsTestCase):
             {receipt.logged_as for receipt in receipts}, {(metadata.run_uid, "payer")}
         )
         self.assertEqual(
-            [record.getMessage() for record in logs.records],
+            get_steps(logs.records),
             [
                 "<CheckoutOperation>: started",
                 *("<PayOperation>: started", "<PayOperation>: done") * 2,
@@ -118,7 +127,7 @@ class RunTestCase(OperationsTestCase):
             (PayParameters(1),),
             self.create_metadata(REFUNDER),
         )
-        with self.assertLogs(LOGGER, "INFO") as logs:
+        with self.assertLogs(LOGGER, "DEBUG") as logs:
             with self.assertRaises(OperationPermissionsError):
                 asyncio.run(run)
         self.assertTrue(
@@ -132,7 +141,7 @@ class RunTestCase(OperationsTestCase):
         )
 
     def test_the_run_is_in_the_log_context_for_the_run_only(self) -> None:
-        with self.assertLogs(LOGGER, "INFO"):
+        with self.assertLogs(LOGGER, "DEBUG"):
             receipt = asyncio.run(
                 self.runner.run(
                     self.project.shop.pay,
@@ -157,7 +166,7 @@ class RunTestCase(OperationsTestCase):
                 )
             )
 
-        with self.assertLogs(LOGGER, "INFO"):
+        with self.assertLogs(LOGGER, "DEBUG"):
             first, second = asyncio.run(run_both())
         self.assertIsNot(*created)
         self.assertEqual((first.amount, second.amount), (1, 2))
@@ -165,7 +174,7 @@ class RunTestCase(OperationsTestCase):
         self.assertEqual(first.logged_as[0], first.run_uid)
 
     def test_a_safe_run_gives_the_result(self) -> None:
-        with self.assertLogs(LOGGER, "INFO"):
+        with self.assertLogs(LOGGER, "DEBUG"):
             receipt = asyncio.run(
                 self.runner.run_safe(
                     self.project.shop.pay, PayParameters(5), self.create_metadata(PAYER)
@@ -207,7 +216,7 @@ class RunTestCase(OperationsTestCase):
             task.cancel()
             await task
 
-        with self.assertLogs(LOGGER, "INFO"):
+        with self.assertLogs(LOGGER, "DEBUG"):
             with self.assertRaises(asyncio.CancelledError):
                 asyncio.run(run_cancelled())
 
@@ -232,7 +241,7 @@ class RunTestCase(OperationsTestCase):
         run = self.runner.run(
             self.project.shop.pay, PayParameters(500), self.create_metadata(PAYER)
         )
-        with self.assertLogs(LOGGER, "INFO") as logs:
+        with self.assertLogs(LOGGER, "DEBUG") as logs:
             with self.assertRaises(InsufficientFunds):
                 asyncio.run(run)
         [_, failed] = logs.records
@@ -250,7 +259,7 @@ class UnitRunTestCase(OperationsTestCase):
         run = operations.run(
             self.project.shop.pay, PayParameters(5), self.create_metadata(PAYER)
         )
-        with self.assertLogs(LOGGER, "INFO") as logs:
+        with self.assertLogs(LOGGER, "DEBUG") as logs:
             receipt = asyncio.run(run)
         t.assert_type(receipt, Receipt)
         self.assertEqual(receipt.amount, 5)
@@ -273,7 +282,7 @@ class RunGroupTestCase(OperationsTestCase):
         run = self.project.operations.run_group(
             self.project.shop.checks, PayParameters(5), metadata
         )
-        with self.assertLogs(LOGGER, "INFO") as logs:
+        with self.assertLogs(LOGGER, "DEBUG") as logs:
             results = asyncio.run(run)
         t.assert_type(results, OperationsResults)
         receipt = results.get(PayOperation)
@@ -286,7 +295,7 @@ class RunGroupTestCase(OperationsTestCase):
             repr(results), "OperationsResults(PayOperation, LimitOperation)"
         )
         self.assertCountEqual(
-            [record.getMessage() for record in logs.records],
+            get_steps(logs.records),
             [
                 "<PayOperation>: started",
                 "<PayOperation>: done",
@@ -307,7 +316,7 @@ class RunGroupTestCase(OperationsTestCase):
                 1,
             )
 
-        with self.assertLogs(LOGGER, "INFO"):
+        with self.assertLogs(LOGGER, "DEBUG"):
             results = asyncio.run(run_handshake())
         self.assertEqual(
             (results.get(WaitOperation), results.get(SignalOperation)),
@@ -318,19 +327,19 @@ class RunGroupTestCase(OperationsTestCase):
         run = self.runner.run_group(
             self.project.shop.checks, PayParameters(70), self.create_metadata(CHECKER)
         )
-        with self.assertLogs(LOGGER, "INFO") as logs:
+        with self.assertLogs(LOGGER, "DEBUG") as logs:
             with self.assertRaises(ExceptionGroup) as raised:
                 asyncio.run(run)
         self.assertEqual(raised.exception.message, "1 of 2 operations failed")
         [error] = raised.exception.exceptions
         self.assertIsInstance(error, LimitExceeded)
-        self.assertIn("<PayOperation>: done", [r.getMessage() for r in logs.records])
+        self.assertIn("<PayOperation>: done", get_steps(logs.records))
 
     def test_the_failures_are_grouped_in_the_order_of_their_classes(self) -> None:
         run = self.runner.run_group(
             self.project.shop.checks, PayParameters(500), self.create_metadata(CHECKER)
         )
-        with self.assertLogs(LOGGER, "INFO"):
+        with self.assertLogs(LOGGER, "DEBUG"):
             with self.assertRaises(ExceptionGroup) as raised:
                 asyncio.run(run)
         self.assertEqual(raised.exception.message, "2 of 2 operations failed")
@@ -343,7 +352,7 @@ class RunGroupTestCase(OperationsTestCase):
         run = self.runner.run_group(
             self.project.shop.checks, PayParameters(5), self.create_metadata(PAYER)
         )
-        with self.assertLogs(LOGGER, "INFO") as logs:
+        with self.assertLogs(LOGGER, "DEBUG") as logs:
             with self.assertRaises(OperationPermissionsError) as raised:
                 asyncio.run(run)
         self.assertEqual(raised.exception.required, READ)
@@ -364,7 +373,7 @@ class RunGroupTestCase(OperationsTestCase):
             asyncio.Event(),
             project.operations.create_metadata(ANONYMOUS),
         )
-        with self.assertLogs(LOGGER, "INFO"):
+        with self.assertLogs(LOGGER, "DEBUG"):
             with self.assertRaises(asyncio.CancelledError):
                 asyncio.run(run)
 
@@ -391,7 +400,7 @@ class RunGroupTestCase(OperationsTestCase):
             task.cancel()
             await task
 
-        with self.assertLogs(LOGGER, "INFO"):
+        with self.assertLogs(LOGGER, "DEBUG"):
             with self.assertRaises(asyncio.CancelledError):
                 asyncio.run(run_cancelled())
 
@@ -420,7 +429,7 @@ class PermissionsCheckTestCase(OperationsTestCase):
         run = self.runner.run(
             self.project.shop.pay, PayParameters(5), self.create_metadata(REFUNDER)
         )
-        with self.assertLogs(LOGGER, "INFO") as logs:
+        with self.assertLogs(LOGGER, "DEBUG") as logs:
             with self.assertRaises(OperationPermissionsError) as raised:
                 asyncio.run(run)
         self.assertEqual(raised.exception.caller, REFUNDER)
@@ -438,14 +447,14 @@ class PermissionsCheckTestCase(OperationsTestCase):
         run = project.operations.runner.run(
             project.shop.pay, PayParameters(5), self.create_metadata(REFUNDER)
         )
-        with self.assertLogs(LOGGER, "INFO") as logs:
+        with self.assertLogs(LOGGER, "DEBUG") as logs:
             with self.assertRaises(OperationPermissionsError):
                 asyncio.run(run)
         self.assertEqual(len(created), 1)
         self.assertFalse(any("started" in line for line in logs.output))
 
     def test_the_root_runs_any_operation(self) -> None:
-        with self.assertLogs(LOGGER, "INFO"):
+        with self.assertLogs(LOGGER, "DEBUG"):
             receipt = asyncio.run(
                 self.runner.run(
                     self.project.shop.pay,
@@ -456,7 +465,7 @@ class PermissionsCheckTestCase(OperationsTestCase):
         self.assertEqual(receipt.caller_uid, "root")
 
     def test_an_operation_requiring_none_runs_for_anyone(self) -> None:
-        with self.assertLogs(LOGGER, "INFO"):
+        with self.assertLogs(LOGGER, "DEBUG"):
             pong = asyncio.run(
                 self.runner.run(
                     self.project.shop.ping,
@@ -494,14 +503,14 @@ class PermissionsCheckTestCase(OperationsTestCase):
         project = RefundProject()
         runner = project.operations.runner
         metadata = project.operations.create_metadata
-        with self.assertLogs(LOGGER, "INFO"):
+        with self.assertLogs(LOGGER, "DEBUG"):
             refunded = asyncio.run(
                 runner.run(project.shop.refund, 5, metadata(REFUNDER))
             )
         self.assertEqual(refunded, -5)
         RefundProject.EXTRA = PAY
         with (
-            self.assertLogs(LOGGER, "INFO"),
+            self.assertLogs(LOGGER, "DEBUG"),
             self.assertRaises(OperationPermissionsError) as raised,
         ):
             asyncio.run(runner.run(project.shop.refund, 5, metadata(REFUNDER)))
@@ -557,7 +566,7 @@ class CustomizationTestCase(TestCase):
             PayParameters(5),
             project.operations.create_metadata(ANONYMOUS),
         )
-        with self.assertLogs(LOGGER, "INFO"):
+        with self.assertLogs(LOGGER, "DEBUG"):
             receipt = asyncio.run(run)
         self.assertEqual(receipt.caller_uid, "anonymous")
 

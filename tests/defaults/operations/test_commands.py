@@ -72,7 +72,7 @@ class OperationCommandTestCase(TestCase):
         return code, out.getvalue()
 
     def test_the_command_runs_its_operation_as_the_root(self) -> None:
-        with self.assertLogs("ingots.defaults.operations", "INFO"):
+        with self.assertLogs("ingots.defaults.operations", "DEBUG"):
             self.assertEqual(self.run_project("shop", "pay"), (0, "5 root\n"))
 
     def test_the_caller_of_the_command_is_its_hook(self) -> None:
