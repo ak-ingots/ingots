@@ -104,6 +104,26 @@ class CustomizationTestCase(unittest.TestCase):
         self.assertEqual(p.pkg1_unit.sub_unit.entity.method(), "pkg1(pkg1)")
 
 
+class Notifier(Entity):
+    pass
+
+
+class MailNotifier(Notifier):
+    pass
+
+
+class QuietMailNotifier(MailNotifier):
+    pass
+
+
+class NoNotifier(Notifier):
+    pass
+
+
+class SmsNotifier(Notifier):
+    pass
+
+
 class SlotsCheckTestCase(unittest.TestCase):
     def test_bases_holding_unrelated_classes_need_a_join(self) -> None:
         with self.assertRaisesRegex(
@@ -113,14 +133,61 @@ class SlotsCheckTestCase(unittest.TestCase):
             class Unjoined(Pkg1Project, Pkg2Project):  # type: ignore[misc]
                 pass
 
-    def test_a_slot_cannot_hold_an_unrelated_class(self) -> None:
+    def test_a_slot_declared_again_is_of_its_kind_its_class_for_mypy(self) -> None:
         class Other(Entity):
             pass
 
-        with self.assertRaisesRegex(TypeError, r"does not extend .*Slot\(Pkg1Common\)"):
+        class Unrelated(Pkg1Project):
+            common = Slot(Other)  # type: ignore[assignment]
 
-            class Unrelated(Pkg1Project):
-                common = Slot(Other)  # type: ignore[assignment]
+        self.assertIs(type(Unrelated().common), Other)
+
+    def test_an_annotation_declares_a_wider_contract(self) -> None:
+        class Base(Project):
+            notifier: Slot[Notifier] = Slot(MailNotifier)
+
+        class Silent(Base):
+            notifier = Slot(NoNotifier)  # a sibling of the default
+
+        self.assertIs(type(Base().notifier), MailNotifier)
+        self.assertIs(type(Silent().notifier), NoNotifier)
+
+    def test_siblings_of_a_contract_in_two_bases_need_a_join(self) -> None:
+        class Base(Project):
+            notifier: Slot[Notifier] = Slot(MailNotifier)
+
+        # each keeps the contract: mypy takes both as Slot[Notifier], and the
+        # order of the bases would pick one silently
+        class Silent(Base):
+            notifier: Slot[Notifier] = Slot(NoNotifier)
+
+        class Texting(Base):
+            notifier: Slot[Notifier] = Slot(SmsNotifier)
+
+        with self.assertRaisesRegex(TypeError, r"Both\.notifier = Slot\(NoNotifier\)"):
+
+            class Both(Silent, Texting):
+                pass
+
+        class Joined(Silent, Texting):
+            notifier = Slot(NoNotifier)  # the choice told
+
+        class Narrowed(Base):
+            notifier = Slot(QuietMailNotifier)
+
+        class Kept(Narrowed, Base):  # a narrowing first joins its base
+            pass
+
+        self.assertIs(type(Joined().notifier), NoNotifier)
+        self.assertIs(type(Kept().notifier), QuietMailNotifier)
+
+    def test_a_slot_cannot_be_replaced_by_a_slot_of_another_kind(self) -> None:
+        with self.assertRaisesRegex(
+            TypeError, r"Refactored\.common = Factory\(Pkg1Common\) does not extend"
+        ):
+
+            class Refactored(Pkg1Project):
+                common = Factory(Pkg1Common)  # type: ignore[assignment]
 
     def test_a_slot_cannot_be_replaced_by_something_else(self) -> None:
         with self.assertRaisesRegex(TypeError, r"Replaced\.common = None"):
@@ -253,7 +320,7 @@ class SlotsOwnerTestCase(unittest.TestCase):
         )
 
         class Wrong(Careless):
-            common = Slot(Common)  # type: ignore[assignment]
+            common = Factory(Pkg1Common)  # type: ignore[assignment]
 
         with self.assertRaisesRegex(TypeError, "Wrong.common = .* does not extend"):
             list(Wrong.slots_iter())

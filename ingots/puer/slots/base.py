@@ -26,7 +26,7 @@ class BaseSlot[EntityType: Entity]:
     :class:`BaseClassesSlot`.
 
     A kind of slot extends it through the hooks: :meth:`_prepare_entity`,
-    :meth:`_iter_entities`, :meth:`_extends`.
+    :meth:`_iter_entities`, :meth:`_extends`, :meth:`_joins`.
     """
 
     def __set_name__(self, owner: type, name: str) -> None:
@@ -66,8 +66,19 @@ class BaseSlot[EntityType: Entity]:
         """
 
     def _extends(self, base: "BaseSlot[t.Any]") -> bool:
-        """Whether this slot may replace ``base`` in a subclass: of the same kind."""
+        """
+        Whether this slot may replace ``base`` in a subclass: of the same
+        kind. What it holds is for mypy to check, against the type of the
+        slot of the base, which an annotation may widen.
+        """
         return isinstance(self, type(base))
+
+    def _joins(self, base: "BaseSlot[t.Any]") -> bool:
+        """
+        Whether this slot, inherited by a subclass declaring none, stands for
+        ``base`` of another of its bases: any here.
+        """
+        return True
 
     def _iter_entities(self, owner: "SlotsOwner") -> "Iterator[EntityType]":
         """The entities of ``owner`` the slot holds: none here."""
@@ -78,7 +89,11 @@ class BaseClassSlot[EntityType: Entity](BaseSlot[EntityType]):
     """
     A slot of one class: :class:`Slot` an entity, :class:`Factory` a
     function creating them. A subclass replaces it with a slot of the same
-    kind holding a subclass of its class.
+    kind, of a class of the type of the slot of its base, for mypy: its
+    class, or the wider one an annotation declares, so that a subclass
+    holds a sibling of the default, ``notifier: Slot[BaseNotifier] =
+    Slot(MailNotifier)``. Inherited from one of several bases, it holds a
+    subclass of what each of them holds.
     """
 
     def __init__(self, cls: type[EntityType]) -> None:
@@ -95,14 +110,12 @@ class BaseClassSlot[EntityType: Entity](BaseSlot[EntityType]):
         return f"{type(self).__qualname__}({self._cls.__qualname__})"
 
     @t.override
-    def _extends(self, base: "BaseSlot[t.Any]") -> bool:
+    def _joins(self, base: "BaseSlot[t.Any]") -> bool:
         """
-        Whether this slot may replace ``base`` in a subclass: it is of the
-        same kind and holds a subclass of the base's class.
+        Whether this slot, inherited from one base, stands for ``base`` of
+        another: it holds a subclass of the class of ``base``.
         """
-        return super()._extends(base) and issubclass(
-            self._cls, t.cast(BaseClassSlot[t.Any], base).cls
-        )
+        return issubclass(self._cls, t.cast(BaseClassSlot[t.Any], base).cls)
 
 
 class BaseClassesSlot[EntityType: Entity](BaseSlot[EntityType]):
