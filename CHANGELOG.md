@@ -5,6 +5,38 @@ are the previous implementation.
 
 <!-- towncrier release notes start -->
 
+## [0.37.0] - 2026-11-24
+### Added
+- The events, `ingots.defaults.events`, `project.events` of the defaults: an
+  event is a fact of a domain, a frozen dataclass, its subscribers the
+  operations of a `Factories` in the unit of its domain, `ev_<name>`.
+  `publish(subscribers, event, metadata)`, not awaited, runs them in the
+  background by `run_each_in_group`, for the caller of the publisher; inside
+  `hold()`, when the outermost hold ends, raising or not, its scope dropping
+  them by `discard()`, as the facade of the transactions of an addon does on
+  a rollback. The project waits for the subscribers running when it shuts
+  down, before its components, `join()`.
+- `run_each_in_group()` of the operations and their runner runs the
+  operations of a `Factories` each on its own: one its caller may not run
+  skipped, the others run together to their end, a refusal and a failure
+  logged at `WARNING`, none raised; for operations independent of each
+  other, the subscribers of an event.
+
+### Changed
+- A slot declared again in a subclass is checked for its kind alone when the
+  class is created, a `Slot` replaced by a `Slot`, a `Factory` by a
+  `Factory`: the class it holds is for mypy to check against the type of the
+  slot of the base, which an annotation may widen, `notifier: Slot[BaseNotifier]
+  = Slot(MailNotifier)` letting a subclass hold a sibling of the default. A slot
+  the subclass inherits from one of bases holding different slots must still
+  hold a subclass of what each holds, the new hook `_joins()` of a kind of
+  slot telling it: the order of the bases picks none silently.
+- The operations runner logs a run that succeeds, `started` and `done`, at `DEBUG` alone: a server pays no line of the logs for each of its calls; a failure stays at `INFO`.
+- `run_group()` of the operations and their runner is `run_all_in_group()`
+  now, beside `run_each_in_group()`: it runs a group as a whole, the caller
+  checked for every operation before any runs, the failures raised
+  together. Breaking: a call of `run_group()` moves to `run_all_in_group()`.
+
 ## [0.36.0] - 2026-11-20
 ### Added
 - The config `ListConfig`: items of one type, as many as given, `ListConfig(int, (1, 2, 4))`.
