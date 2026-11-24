@@ -170,24 +170,32 @@ class SlotsOwner:
 
 def check_slots(cls: type[SlotsOwner]) -> None:
     """
-    Internal, run when the class is created: a slot of a subclass must hold
-    a subclass of what every direct base holds in it. Where two bases hold
-    unrelated classes in one slot, the subclass declares the slot with a
-    class extending all of them.
+    Internal, run when the class is created: a slot of a subclass is of the
+    kind of the slot of every direct base. Declared by the subclass, what it
+    holds is for mypy to check, against the type of the slot of each base,
+    its class or a wider annotation. Inherited, from one of several bases
+    holding different slots, it must hold a subclass of what each holds:
+    the order of the bases does not pick one of unrelated classes silently,
+    a check mypy does not make where an annotation widens them alike.
     """
     for base in cls.__bases__:
         if not issubclass(base, SlotsOwner):
             continue
         for name, base_slot in _get_index(base).items():
             slot = inspect.getattr_static(cls, name)
-            if isinstance(slot, BaseSlot) and slot._extends(base_slot):
-                continue
-            raise TypeError(
-                f"{cls.__qualname__}.{name} = {slot!r} does not extend "
-                f"{base.__qualname__}.{name} = {base_slot!r}: declare "
-                f"{cls.__qualname__}.{name} with a class extending the classes "
-                f"of all bases"
-            )
+            if not (isinstance(slot, BaseSlot) and slot._extends(base_slot)):
+                raise TypeError(
+                    f"{cls.__qualname__}.{name} = {slot!r} does not extend "
+                    f"{base.__qualname__}.{name} = {base_slot!r}: declare "
+                    f"{cls.__qualname__}.{name} with a slot of its kind"
+                )
+            if name not in vars(cls) and not slot._joins(base_slot):
+                raise TypeError(
+                    f"{cls.__qualname__}.{name} = {slot!r} does not extend "
+                    f"{base.__qualname__}.{name} = {base_slot!r}: declare "
+                    f"{cls.__qualname__}.{name} with a class extending the classes "
+                    f"of all bases"
+                )
 
 
 def _get_index(cls: type[SlotsOwner]) -> dict[str, BaseSlot[t.Any]]:

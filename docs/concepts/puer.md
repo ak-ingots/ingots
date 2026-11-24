@@ -145,6 +145,23 @@ class AppProject(StorageProject):
 ```
 
 `AppProject().storage.repository` is a `CachedRepository`, and mypy knows it.
+
+The type of a slot is its class, unless an annotation declares a wider one:
+a default of a kind, which a subclass replaces by any class of the kind, a
+sibling of the default too:
+
+```python
+class Storage(Unit):
+    cache: Slot[BaseCache] = Slot(MemoryCache)  # any BaseCache will do
+
+
+class AppStorage(Storage):
+    cache = Slot(RedisCache)  # not a MemoryCache: a BaseCache
+```
+
+A slot declared again is checked for its kind when the class is created, a
+`Slot` replaced by a `Slot`, a `Factory` by a `Factory`; the class it holds
+is for mypy to check, against the type of the slot of the base.
 An entity that needs more than its own addon's project narrows the type of its
 back-reference with an annotation, and of its parent so:
 
@@ -170,10 +187,13 @@ class AppProject(AuthProject, InventoryProject):
     settings = Slot(AppSettingsUnit)
 ```
 
-The rule behind it is checked when a class is created, and mypy checks the
-same: a slot of a subclass must hold a subclass of what every base holds in
-it. Without the join, `AppProject` fails at import time with a `TypeError`
-naming the slot and the bases, not in production.
+The rule behind it is checked when a class is created: a slot the class
+inherits, declaring none, from one of bases holding different slots, must
+hold a subclass of what each of them holds. Without the join, `AppProject`
+fails at import time with a `TypeError` naming the slot and the bases, not
+in production: the order of the bases picks no slot silently. mypy refuses
+it too, unless the bases keep a wider annotation alike, siblings of one
+contract, where the check is the only one to tell.
 
 ## Lifetime
 
