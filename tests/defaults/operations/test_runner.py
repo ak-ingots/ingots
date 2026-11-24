@@ -279,7 +279,7 @@ class UnitRunTestCase(OperationsTestCase):
 class RunGroupTestCase(OperationsTestCase):
     def test_a_group_gives_the_result_of_each_by_its_class(self) -> None:
         metadata = self.create_metadata(CHECKER, run_uid="request-1")
-        run = self.project.operations.run_group(
+        run = self.project.operations.run_all_in_group(
             self.project.shop.checks, PayParameters(5), metadata
         )
         with self.assertLogs(LOGGER, "DEBUG") as logs:
@@ -308,7 +308,7 @@ class RunGroupTestCase(OperationsTestCase):
         # the first waits for the second: one after the other, it never ends
         async def run_handshake() -> OperationsResults:
             return await asyncio.wait_for(
-                self.runner.run_group(
+                self.runner.run_all_in_group(
                     self.project.shop.handshake,
                     asyncio.Event(),
                     self.create_metadata(ANONYMOUS),
@@ -324,7 +324,7 @@ class RunGroupTestCase(OperationsTestCase):
         )
 
     def test_every_operation_runs_to_its_end_whatever_the_others_do(self) -> None:
-        run = self.runner.run_group(
+        run = self.runner.run_all_in_group(
             self.project.shop.checks, PayParameters(70), self.create_metadata(CHECKER)
         )
         with self.assertLogs(LOGGER, "DEBUG") as logs:
@@ -336,7 +336,7 @@ class RunGroupTestCase(OperationsTestCase):
         self.assertIn("<PayOperation>: done", get_steps(logs.records))
 
     def test_the_failures_are_grouped_in_the_order_of_their_classes(self) -> None:
-        run = self.runner.run_group(
+        run = self.runner.run_all_in_group(
             self.project.shop.checks, PayParameters(500), self.create_metadata(CHECKER)
         )
         with self.assertLogs(LOGGER, "DEBUG"):
@@ -349,7 +349,7 @@ class RunGroupTestCase(OperationsTestCase):
         )
 
     def test_a_caller_refused_one_operation_runs_none(self) -> None:
-        run = self.runner.run_group(
+        run = self.runner.run_all_in_group(
             self.project.shop.checks, PayParameters(5), self.create_metadata(PAYER)
         )
         with self.assertLogs(LOGGER, "DEBUG") as logs:
@@ -368,7 +368,7 @@ class RunGroupTestCase(OperationsTestCase):
             shop = Slot(CancellingShop)
 
         project = CancellingProject()
-        run = project.operations.runner.run_group(
+        run = project.operations.runner.run_all_in_group(
             project.shop.handshake,
             asyncio.Event(),
             project.operations.create_metadata(ANONYMOUS),
@@ -390,7 +390,7 @@ class RunGroupTestCase(OperationsTestCase):
 
         async def run_cancelled() -> None:
             task = asyncio.create_task(
-                project.operations.runner.run_group(
+                project.operations.runner.run_all_in_group(
                     project.shop.sleeps,
                     None,
                     project.operations.create_metadata(ANONYMOUS),
@@ -412,7 +412,7 @@ class RunGroupTestCase(OperationsTestCase):
             shop = Slot(EmptyShop)
 
         project = EmptyProject()
-        run = project.operations.runner.run_group(
+        run = project.operations.runner.run_all_in_group(
             project.shop.checks,
             PayParameters(5),
             project.operations.create_metadata(ANONYMOUS),
@@ -422,6 +422,85 @@ class RunGroupTestCase(OperationsTestCase):
         self.assertEqual(repr(results), "OperationsResults()")
         with self.assertRaises(KeyError):
             results.get(PayOperation)
+
+
+class RunEachInGroupTestCase(OperationsTestCase):
+    def test_each_operation_runs_to_its_end(self) -> None:
+        run = self.project.operations.run_each_in_group(
+            self.project.shop.checks, PayParameters(5), self.create_metadata(CHECKER)
+        )
+        with self.assertLogs(LOGGER, "DEBUG") as logs:
+            asyncio.run(run)
+        self.assertCountEqual(
+            get_steps(logs.records),
+            [
+                "<PayOperation>: started",
+                "<PayOperation>: done",
+                "<LimitOperation>: started",
+                "<LimitOperation>: done",
+            ],
+        )
+
+    def test_a_failure_is_logged_the_others_run(self) -> None:
+        run = self.runner.run_each_in_group(
+            self.project.shop.checks, PayParameters(70), self.create_metadata(CHECKER)
+        )
+        with self.assertLogs(LOGGER, "DEBUG") as logs:
+            asyncio.run(run)
+        steps = get_steps(logs.records)
+        self.assertIn("<PayOperation>: done", steps)
+        [ignored] = [line for line in logs.output if "failure ignored" in line]
+        self.assertTrue(ignored.startswith("WARNING:"))
+        self.assertIn("<LimitOperation>: failure ignored: LimitExceeded", ignored)
+
+    def test_an_operation_the_caller_may_not_run_is_skipped(self) -> None:
+        run = self.runner.run_each_in_group(
+            self.project.shop.checks, PayParameters(5), self.create_metadata(PAYER)
+        )
+        with self.assertLogs(LOGGER, "DEBUG") as logs:
+            asyncio.run(run)
+        steps = get_steps(logs.records)
+        self.assertIn("<PayOperation>: done", steps)
+        self.assertNotIn("<LimitOperation>: started", steps)
+        [skipped] = [line for line in logs.output if "skipped" in line]
+        self.assertTrue(skipped.startswith("WARNING:"))
+        self.assertIn("<LimitOperation>: skipped: OperationPermissionsError", skipped)
+
+    def test_the_operations_run_concurrently(self) -> None:
+        async def run_handshake() -> None:
+            await asyncio.wait_for(
+                self.runner.run_each_in_group(
+                    self.project.shop.handshake,
+                    asyncio.Event(),
+                    self.create_metadata(ANONYMOUS),
+                ),
+                1,
+            )
+
+        with self.assertLogs(LOGGER, "DEBUG") as logs:
+            asyncio.run(run_handshake())
+        steps = get_steps(logs.records)
+        self.assertIn("<WaitOperation>: done", steps)
+        self.assertIn("<SignalOperation>: done", steps)
+
+    def test_a_cancellation_goes_through(self) -> None:
+        class CancellingShop(ShopUnit):
+            handshake = Factories[BaseOperation[asyncio.Event, t.Any]](
+                SignalOperation, CancelledOperation
+            )
+
+        class CancellingProject(ShopProject):
+            shop = Slot(CancellingShop)
+
+        project = CancellingProject()
+        run = project.operations.runner.run_each_in_group(
+            project.shop.handshake,
+            asyncio.Event(),
+            project.operations.create_metadata(ANONYMOUS),
+        )
+        with self.assertLogs(LOGGER, "DEBUG"):
+            with self.assertRaises(asyncio.CancelledError):
+                asyncio.run(run)
 
 
 class PermissionsCheckTestCase(OperationsTestCase):

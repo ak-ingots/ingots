@@ -9,6 +9,7 @@ import typing as t
 from ingots.defaults.logging.context import LogContextVar
 from ingots.puer import Entity
 
+from .errors import OperationPermissionsError
 from .results import OperationsResults
 
 if t.TYPE_CHECKING:
@@ -41,8 +42,11 @@ class OperationsRunner(Entity):
     and its context, without its traceback: its handler, a policy of a
     server for one, logs it as it decides.
 
-    Operations independent of each other, taking the same parameters, run
-    together from the slot of their factories, :meth:`run_group`.
+    Operations taking the same parameters run together from the slot of
+    their factories, by one of two strategies: :meth:`run_all_in_group`,
+    the group as a whole, the policies of a change for one, and
+    :meth:`run_each_in_group`, each on its own, the subscribers of an
+    event.
     """
 
     project: "Project"
@@ -93,7 +97,7 @@ class OperationsRunner(Entity):
             return None
 
     @t.final
-    async def run_group[ParametersType](
+    async def run_all_in_group[ParametersType](
         self,
         factories: "BoundFactories[BaseOperation[ParametersType, t.Any]]",
         parameters: ParametersType,
@@ -101,10 +105,11 @@ class OperationsRunner(Entity):
     ) -> OperationsResults:
         """
         Runs the operations ``factories`` creates, ``project.shop.checks``,
-        concurrently, each with ``parameters`` for the caller of
-        ``metadata``: the caller is checked for every one before any runs,
-        and every one runs to its end, whatever the others do. The context
-        of the logs is bound once for them all.
+        as a whole: concurrently, each with ``parameters`` for the caller of
+        ``metadata``, the caller checked for every one before any runs, and
+        every one run to its end, whatever the others do. The context of the
+        logs is bound once for them all. For operations deciding together,
+        the policies of a change: one skipped would be a check bypassed.
 
         :raises OperationPermissionsError: the caller may not run one; none
             runs.
@@ -136,6 +141,54 @@ class OperationsRunner(Entity):
                 f"{len(errors)} of {len(operations)} operations failed", errors
             )
         return OperationsResults(dict(zip(factories.classes, outcomes)))
+
+    @t.final
+    async def run_each_in_group[ParametersType](
+        self,
+        factories: "BoundFactories[BaseOperation[ParametersType, t.Any]]",
+        parameters: ParametersType,
+        metadata: "OperationMetadata",
+    ) -> None:
+        """
+        Runs the operations ``factories`` creates, ``project.shop.checks``,
+        each on its own: the caller checked for each, one it may not run
+        skipped, the others run concurrently to their end, each with
+        ``parameters``. A refusal and a failure are logged at ``WARNING``,
+        none raised, as :meth:`run_safe` does. For operations independent
+        of each other, the subscribers of an event: a reaction does not
+        depend on the others.
+        """
+        with RUN_UID.bind(metadata.run_uid), CALLER_UID.bind(metadata.caller.uid):
+            checker = self.project.operations.checker
+            permitted = []
+            for operation in factories():
+                try:
+                    await checker.check(
+                        type(operation), operation.get_permissions(), metadata
+                    )
+                except OperationPermissionsError as error:
+                    logger.warning(
+                        "<%s>: skipped: %r", type(operation).__qualname__, error
+                    )
+                    continue
+                permitted.append(operation)
+            outcomes = await asyncio.gather(
+                *(
+                    self._run_operation(operation, parameters, metadata)
+                    for operation in permitted
+                ),
+                return_exceptions=True,
+            )
+        for operation, outcome in zip(permitted, outcomes):
+            if isinstance(outcome, Exception):
+                logger.warning(
+                    "<%s>: failure ignored: %r",
+                    type(operation).__qualname__,
+                    outcome,
+                    exc_info=outcome,
+                )
+            elif isinstance(outcome, BaseException):
+                raise outcome  # a cancellation goes through, not a failure
 
     @t.final
     async def _run_operation[ParametersType, ResultType](

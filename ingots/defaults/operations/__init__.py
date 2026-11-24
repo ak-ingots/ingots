@@ -50,7 +50,8 @@ class OperationsUnit(Unit):
     """
     The base of the operations, not the operations themselves: those live
     in the units of their domains. :meth:`run` runs them with ``runner``,
-    :meth:`run_group` several of them together,
+    :meth:`run_all_in_group` several of them as a whole,
+    :meth:`run_each_in_group` several each on its own,
     ``checker`` lets their callers run them, ``callers`` gives those every
     project has, the root and the anonymous one; a subclass of any in its
     slot changes how.
@@ -90,7 +91,7 @@ class OperationsUnit(Unit):
         return await self.runner.run_safe(factory, parameters, metadata)
 
     @t.final
-    async def run_group[ParametersType](
+    async def run_all_in_group[ParametersType](
         self,
         factories: "BoundFactories[BaseOperation[ParametersType, t.Any]]",
         parameters: ParametersType,
@@ -98,14 +99,28 @@ class OperationsUnit(Unit):
     ) -> OperationsResults:
         """
         Runs the operations ``factories`` creates, ``project.shop.checks``,
-        concurrently, each with ``parameters``, as
-        :meth:`OperationsRunner.run_group` does.
+        as a whole, each with ``parameters``, as
+        :meth:`OperationsRunner.run_all_in_group` does.
 
         :raises OperationPermissionsError: the caller may not run one; none
             runs.
         :raises ExceptionGroup: some failed.
         """
-        return await self.runner.run_group(factories, parameters, metadata)
+        return await self.runner.run_all_in_group(factories, parameters, metadata)
+
+    @t.final
+    async def run_each_in_group[ParametersType](
+        self,
+        factories: "BoundFactories[BaseOperation[ParametersType, t.Any]]",
+        parameters: ParametersType,
+        metadata: OperationMetadata,
+    ) -> None:
+        """
+        Runs the operations ``factories`` creates, each on its own, with
+        ``parameters``, as :meth:`OperationsRunner.run_each_in_group` does:
+        a refusal and a failure logged, none raised.
+        """
+        await self.runner.run_each_in_group(factories, parameters, metadata)
 
     def create_metadata(
         self, caller: Caller, *, run_uid: str | None = None
