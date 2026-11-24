@@ -216,8 +216,9 @@ class PayCommand(BaseOperationCommand[PayParameters, Receipt]):
 
 ## Operations run together
 
-Operations independent of each other, taking the same parameters, the
-checks of an order for one, run together. A unit declares them in a
+Operations taking the same parameters, the checks of an order for one, run
+together, by one of two strategies: as a whole, `run_all_in_group()`, or
+each on its own, `run_each_in_group()`. A unit declares them in a
 {py:class}`~ingots.puer.Factories`, a slot of several classes, in their
 order, a class once, typed by what they take:
 
@@ -238,11 +239,11 @@ A subclass declares the slot again from the classes of its base, adding,
 dropping or replacing some.
 
 ```python
-results = await project.operations.run_group(project.shop.checks, order, metadata)
+results = await project.operations.run_all_in_group(project.shop.checks, order, metadata)
 reserved = results.get(StockOperation)  # typed by the result of the class
 ```
 
-- `run_group()` creates the operations and checks the caller for every one
+- `run_all_in_group()` creates the operations and checks the caller for every one
   before any runs: refused one, it raises `OperationPermissionsError` and
   none runs. The context of the logs is bound once for them all.
 - They run concurrently, each with the parameters of the group, and every
@@ -252,6 +253,20 @@ reserved = results.get(StockOperation)  # typed by the result of the class
 - {py:class}`~ingots.defaults.operations.OperationsResults` gives the result
   of each by the class the group holds; `None` is a result as any other, a
   class the group does not hold raises `KeyError`.
+
+`run_all_in_group()` is for operations deciding together, the policies of a
+change: one skipped would be a check bypassed. `run_each_in_group()` is for
+operations independent of each other, the subscribers of an
+{doc}`event <events>`:
+
+```python
+await project.operations.run_each_in_group(project.shop.ev_paid, paid, metadata)
+```
+
+- The caller is checked for each: one it may not run is skipped, logged at
+  `WARNING`; the others run concurrently, each to its end.
+- A failure is logged at `WARNING` with its traceback, none raised, as
+  `run_safe()` does; nothing comes back. A cancellation goes through.
 
 Operations one after the other, the result of one the parameters of the
 next, are not a group: one operation runs them.

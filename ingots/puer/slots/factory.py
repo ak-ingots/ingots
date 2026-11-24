@@ -90,7 +90,7 @@ class BoundFactory[EntityType: Entity]:
 class Factories[EntityType: Entity](BaseClassesSlot[EntityType]):
     """
     A new entity of each of its classes on every call, in their order: the
-    operations a runner runs together, ``run_group()`` of the operations of
+    operations a runner runs together, ``run_all_in_group()`` of the operations of
     the defaults. On the instance the slot is a :class:`BoundFactories`,
     on the class the slot itself; a subclass declares it again, from the
     classes of its base. Usage::

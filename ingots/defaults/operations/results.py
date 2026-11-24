@@ -14,10 +14,10 @@ if t.TYPE_CHECKING:
 class OperationsResults:
     """
     The results of the operations of a group, by their classes, as
-    :meth:`~OperationsRunner.run_group` gives them: :meth:`get` types each
+    :meth:`~OperationsRunner.run_all_in_group` gives them: :meth:`get` types each
     by the class it is of::
 
-        results = await project.operations.run_group(
+        results = await project.operations.run_all_in_group(
             project.shop.checks, order, metadata
         )
         reserved = results.get(StockOperation)  # its result type

@@ -12,4 +12,5 @@ settings
 logging
 components
 operations
+events
 ```
