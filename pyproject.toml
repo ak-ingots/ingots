@@ -7,7 +7,20 @@ requires-python = ">=3.14"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [{name = "Aliaksandr Karotki", email = "abkarotki@gmail.com"}]
-keywords = ["framework", "ingots"]
+keywords = [
+    "ingots",
+    "framework",
+    "application",
+    "composition",
+    "addons",
+    "extensible",
+    "typed",
+    "asyncio",
+    "cli",
+    "settings",
+    "configuration",
+    "env",
+]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Framework :: AsyncIO",
