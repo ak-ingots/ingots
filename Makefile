@@ -1,9 +1,3 @@
-# Development entrypoint (uv):
-#
-#   make              show the target list
-#   make check        everything the `ci` workflow runs
-#   make all          build the distributions into dist/
-
 SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 .DEFAULT_GOAL := help
@@ -12,11 +6,8 @@ SHELL := /bin/bash
 SRC := ingots tests docs/conf.py
 DOC_OUT := docs/build
 
-# Supported interpreters: keep in step with the classifiers and the `wheel`
-# matrix in .github/workflows/ci.yml.
 PYTHONS ?= 3.14 3.15
 
-# What `cl-check` compares the branch with.
 AGAINST ?= origin/main
 
 # Where `doc-serve` listens. The default is every interface, so the docs built
@@ -28,7 +19,6 @@ DOC_PORT ?= 8000
 
 ##@ Checks
 
-# The `ci` workflow runs exactly these targets, one per job.
 .PHONY: check
 check: lint test coverage wheel-test doc cl-check  ## Every check: lint, test, coverage, wheel-test, doc, cl-check
 
@@ -48,9 +38,6 @@ coverage:  ## unittest on the working tree under coverage; fails below 99%
 	uv run coverage run -m unittest discover -s tests -t .
 	uv run coverage report
 
-# ADR 0003: the tests run against the built wheel, installed into a fresh
-# virtualenv, from a copy of tests/ outside the repository, so the package can
-# be imported only from the wheel.
 .PHONY: wheel-test
 wheel-test: all  ## unittest on the built wheel, once per interpreter in PYTHONS
 	@$(MAKE) --no-print-directory installed-test WHEEL="$$(echo dist/*.whl)"

@@ -107,8 +107,6 @@ class PerfUnit[RowType](CliUnit):
                 "no PerfConfigs"
             )
 
-    # the flow of the commands
-
     def _get_configs(self) -> PerfConfigs:
         return t.cast(PerfConfigs, self.project.settings.configs)
 

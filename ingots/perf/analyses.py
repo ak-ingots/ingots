@@ -49,7 +49,6 @@ class MedianAnalysis(Entity):
     the slot ``analysis`` of its unit.
     """
 
-    # the metrics compared, of the actions and of the point
     METRICS: t.ClassVar[tuple[str, ...]] = (
         "rps",
         "p50_ms",

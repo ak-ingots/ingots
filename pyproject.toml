@@ -36,7 +36,6 @@ module-root = ""
 wheel-exclude = ["**/CLAUDE.md"]
 
 [tool.uv]
-# uv 0.13.5 drops the eMudhra roots from its certificates and its Pythons.
 required-version = ">=0.13.5"
 environments = ["sys_platform == 'linux'", "sys_platform == 'darwin'"]
 
@@ -63,8 +62,6 @@ line-length = 88
 exclude = [".git", ".venv"]
 max-line-length = 88
 extend-ignore = ["E203", "E701", "E704"]
-# Member order of ADR 0007 (ingots-libs). `__init_subclass__` is written with an
-# explicit @classmethod, so it is checked as a class method.
 class_attributes_order = [
     "nested_class",
     "constant",
@@ -132,8 +129,6 @@ directory = "security"
 name = "Security"
 showcontent = true
 
-# Internal changes users need not know about (agent rules, CI, test
-# refactoring): the fragment satisfies `cl-check`, its text is not published.
 [[tool.towncrier.type]]
 directory = "misc"
 name = "Misc"
