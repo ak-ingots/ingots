@@ -80,7 +80,7 @@ apidoc:  ## Regenerate the API reference stubs in docs/modules/
 .PHONY: doc
 doc: apidoc  ## Build the HTML documentation into docs/build/, warnings are errors
 	rm -rf $(DOC_OUT)
-	uv run --group doc sphinx-build -b html -W --keep-going docs $(DOC_OUT)
+	uv run --group doc sphinx-build -j auto -b html -W --keep-going docs $(DOC_OUT)
 
 .PHONY: doc-serve
 doc-serve: doc  ## Build the documentation and serve it over HTTP [DOC_HOST=0.0.0.0 DOC_PORT=8000]

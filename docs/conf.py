@@ -33,6 +33,9 @@ myst_heading_anchors = 3
 
 autodoc_typehints = "description"
 autodoc_member_order = "bysource"
+# The sidebar of the theme copies the whole tree on every page: with an
+# entry for each object of hundreds of modules, most of the build.
+toc_object_entries = False
 # Document each object once, at its definition site: an automodule on a
 # package __init__ otherwise re-documents the names it re-exports in __all__.
 autodoc_default_options = {"ignore-module-all": True}
