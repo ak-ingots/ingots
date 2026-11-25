@@ -6,11 +6,26 @@ repeat what README, `docs/` or the ADRs say: link to them.
 ## What this is
 
 `ingots`: statically typed composition of Python applications from reusable
-addons. Rewritten from scratch since 0.30.0: the PUER core, the command line,
-the components and the defaults (settings, logging, the components unit,
-operations). A library (ADR 0003), Python >= 3.14, part of the
+addons. Rewritten from scratch since 0.30.0.
+A library (ADR 0003), Python >= 3.14, part of the
 [ak-ingots](https://github.com/ak-ingots) ecosystem; the meta repository
 `ingots-libs` holds the ecosystem-wide decisions in `docs/adr/`.
+
+## Layout
+
+The concepts are documented in `docs/concepts/`, each part of the defaults
+in `docs/defaults/`; `docs/contributing.md` is for contributors.
+
+- `puer/`: the PUER core, the project, the unit, the entity, the runner;
+  `slots/`, the typed slots and their checks; `components/`; `cli/`, the
+  command line.
+- `defaults/`: `Project` (`project.py`) and its units: `settings/`,
+  `logging/`, `components/`, `operations/` (the permissions, the callers,
+  the groups run all or each), `events/` (published after the commit of the
+  transaction holding them).
+- `testing/`: the project of a test case as a fixture, a project of
+  scenarios run by its command `testing run`.
+- `perf/`: the load of a project, a scenario its project.
 
 ## Commands
 
@@ -38,10 +53,10 @@ Logs of a run: `INGOTS_TEST_LOG=info make test` (test cases derive from
   your own initiative: show a summary and the proposed message, wait for an
   explicit approval of that commit. One approval does not extend to the
   next. Never merge a pull request: the user does (`gh pr merge` is denied).
-- The remote is `ak-ingots/ingots`. Inside the `ingots-libs` checkout, run gh
-  and git network commands as `direnv exec /home/bee/work/ingots-libs <cmd>`
-  (the token comes from its `.envrc`; never read it). Release tags are
-  `vX.Y.Z`, the version is bumped with `uv version --bump`.
+- The remote is `ak-ingots/ingots`. Inside the `ingots-libs`
+  checkout, run gh and git network commands as
+  `direnv exec /home/bee/work/ingots-libs <cmd>` (the token comes from its
+  `.envrc`; never read it).
 - `main` and `release/X.Y` are protected by a ruleset: no direct push, force
   push or deletion; pull requests only, squash-merged, with every CI job
   green on a branch up to date with `main`. One change per branch and PR,
@@ -51,6 +66,12 @@ Logs of a run: `INGOTS_TEST_LOG=info make test` (test cases derive from
 - Before pushing a branch, rebase it onto the current `main` and run
   `make check`. After the user merges, switch to `main`, pull and delete the
   local branch.
+- A release: a pull request sets the version (`uv version X.Y.Z`) and
+  collates the changelog (`make cl-build VERSION=X.Y.Z`); after the merge,
+  the tag `vX.Y.Z` on its commit starts the `release` workflow, which
+  publishes to TestPyPI, tests the package installed from it (the shared
+  workflow `index-test`), then publishes to PyPI once the user approves the
+  `pypi` environment. Run by hand, the workflow rehearses on TestPyPI only.
 
 ## Rules
 
@@ -69,6 +90,10 @@ Logs of a run: `INGOTS_TEST_LOG=info make test` (test cases derive from
   `.github/workflows/ci.yml`. Change them together.
 - CI runs exactly the `make` targets; a new check goes into `make check` and
   `ci.yml` together.
+- A comment tells what the code cannot: why it is so, a constraint from
+  outside (a bug of a library, a standard, a measure), a trap for the next
+  change. None repeats the code, a name, a docstring or what a key of a
+  config says, nor tells the history of a change: that is the commit's.
 - Code layout and naming follow ADR 0007: class members and module contents
   top-down, verbs for methods, `Base` only for incomplete classes
   (`@abc.abstractmethod`, no `ABC`), mixin members under the mixin's prefix
