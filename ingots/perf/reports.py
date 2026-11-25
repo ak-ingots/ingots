@@ -32,7 +32,6 @@ class ReportRow:
     value: str
 
 
-# the columns of the CSV, the fields of its row
 FIELDS = tuple(field.name for field in dataclasses.fields(ReportRow))
 
 # the configs a point tells of its role, apart from those of the run

@@ -53,7 +53,6 @@ class CliParser:
     hooks; a runner takes it in its ``cli_parser_cls``.
     """
 
-    # the namespace attribute holding the slot path of the chosen command
     COMMAND_PATH_DEST: t.ClassVar[str] = "_cli_command_path"
 
     def __init__(self, project_cls: type["Project"], runner_cls: type[CliNode]) -> None:

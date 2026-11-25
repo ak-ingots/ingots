@@ -94,6 +94,11 @@ Logs of a run: `INGOTS_TEST_LOG=info make test` (test cases derive from
   outside (a bug of a library, a standard, a measure), a trap for the next
   change. None repeats the code, a name, a docstring or what a key of a
   config says, nor tells the history of a change: that is the commit's.
+  Reading it, one thinks "ah, so that's it"; a comment that gives no such
+  moment states the obvious and goes.
+- A TODO names its issue of GitHub, `# TODO(#42): ...`, of another
+  repository `# TODO(ak-ingots/ingots#42): ...`: one without an issue is
+  never done. No issue, no TODO: do it now, or open the issue first.
 - Code layout and naming follow ADR 0007: class members and module contents
   top-down, verbs for methods, `Base` only for incomplete classes
   (`@abc.abstractmethod`, no `ABC`), mixin members under the mixin's prefix

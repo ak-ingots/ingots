@@ -120,7 +120,7 @@ class ComponentsLifecycle:
     ) -> None:
         _configuring.set(chain)
         try:
-            await component._configure()  # TODO. should we log the error here?
+            await component._configure()
             self._configured[id(component)] = component
         finally:
             del self._configuring[id(component)]
