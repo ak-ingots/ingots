@@ -1,8 +1,10 @@
 # Ingots
 
+[![PyPI](https://img.shields.io/pypi/v/ingots.svg)](https://pypi.org/project/ingots/)
+[![Python](https://img.shields.io/pypi/pyversions/ingots.svg)](https://pypi.org/project/ingots/)
 [![ci](https://github.com/ak-ingots/ingots/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ak-ingots/ingots/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/ak-ingots/ingots/blob/main/LICENSE)
-[![Documentation Status](https://app.readthedocs.org/projects/ingots/badge/?version=latest)](https://ingots.readthedocs.io/en/latest/)
+[![Documentation Status](https://app.readthedocs.org/projects/ingots/badge/?version=stable)](https://ingots.readthedocs.io/en/stable/)
 
 <!-- Links must be absolute: this README also renders on PyPI. -->
 

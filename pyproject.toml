@@ -10,6 +10,7 @@ authors = [{name = "Aliaksandr Karotki", email = "abkarotki@gmail.com"}]
 keywords = ["framework", "ingots"]
 classifiers = [
     "Development Status :: 3 - Alpha",
+    "Framework :: AsyncIO",
     "Intended Audience :: Developers",
     "Operating System :: MacOS",
     "Operating System :: POSIX :: Linux",
@@ -17,14 +18,17 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: 3.15",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
     "Typing :: Typed",
 ]
 dependencies = []
 
 [project.urls]
 repository = "https://github.com/ak-ingots/ingots"
+issues = "https://github.com/ak-ingots/ingots/issues"
 changelog = "https://github.com/ak-ingots/ingots/blob/main/CHANGELOG.md"
 documentation = "https://ingots.readthedocs.io/"
+ecosystem = "https://github.com/ak-ingots/ingots-libs"
 
 [build-system]
 requires = ["uv_build>=0.13.5,<0.14"]
