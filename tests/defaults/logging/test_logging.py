@@ -6,11 +6,11 @@ import os
 import typing as t
 from unittest import mock
 
-from ingots.defaults import ProjectCliArgs
+from ingots.defaults.cli import ProjectCliArgs
 from ingots.defaults.logging import configure_startup_logging
 from ingots.defaults.logging.context import LogContextFilter
 from ingots.defaults.logging.startup import STARTUP_LOGGING_FORMAT
-from ingots.puer.cli import CommandRunner
+from ingots.defaults.cli import CommandRunner
 
 from tests import TestCase
 
@@ -40,7 +40,7 @@ class LoggingTestCase(TestCase):
 
     def create_project(self) -> LoggingProject:
         project = LoggingProject()
-        project._cli_set_args(ProjectCliArgs())
+        project.cli._cli_set_args(ProjectCliArgs())
         return project
 
     def test_the_configuration_is_built_from_the_configs(self) -> None:

@@ -1,8 +1,9 @@
 """
 The load of a project: what is loaded and how, against a target already
 up. A scenario is a module, ``scenarios/<name>.py`` of a stand, giving
-``PerfProject``: the project of the client it loads with the unit ``perf``,
-a :class:`PerfUnit`, its group of clients, its seed, its report. How a run
+``PerfProject``: the project of the client it loads, a
+:class:`PerfStandProject`, with the unit ``perf``, a :class:`PerfUnit`,
+its group of clients, its seed, its report. How a run
 is carried out on a host, the roles brought up, the cores, the rounds, is
 the runner's, outside: ``python -m ingots.perf <module> perf plan`` gives
 it the configs, ``seed`` and ``point`` do the load.
@@ -20,7 +21,10 @@ __all__ = (
     "LoadCommand",
     "LoadGroup",
     "MedianAnalysis",
+    "PerfCliUnit",
+    "PerfCommandsUnit",
     "PerfConfigs",
+    "PerfStandProject",
     "PerfUnit",
     "PlanCommand",
     "PointCliArgs",
@@ -46,8 +50,8 @@ import time
 import typing as t
 from pathlib import Path
 
-from ingots.puer import Slot
-from ingots.puer.cli import CliUnit
+from ingots.defaults import Project
+from ingots.puer import Slot, Unit
 
 from .clients import Call, LoadClient, LoadGroup, Recorder
 from .analyses import Comparison, MedianAnalysis, Rounds, Series
@@ -56,6 +60,8 @@ from .commands import (
     AnalyzeCommand,
     LoadCliArgs,
     LoadCommand,
+    PerfCliUnit,
+    PerfCommandsUnit,
     PlanCommand,
     PointCliArgs,
     PointCommand,
@@ -71,31 +77,21 @@ from .seeds import CsvSeed
 if t.TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from ingots.defaults import Project
 
-
-class PerfUnit[RowType](CliUnit):
+class PerfUnit[RowType](Unit):
     """
     The unit ``perf`` of a scenario: its :attr:`group`, a
     :class:`LoadGroup` of ``RowType`` rows, what it seeds in the slot
     ``seed``, a :class:`CsvSeed` of the same rows, its report in the slot
-    ``report``, its analysis in the slot ``analysis``; its commands
-    ``seed``, ``point``, ``load``, ``smoke``, ``plan`` and ``analyze``. Its
-    project's configs are :class:`PerfConfigs`.
+    ``report``, its analysis in the slot ``analysis``; the commands of
+    ``cli.perf`` run it. Its project's configs are :class:`PerfConfigs`.
     """
 
-    cli_description = "The load of the scenario."
     project: "Project"
     group: type[LoadGroup[RowType]]
     seed: Slot[CsvSeed[RowType]] = Slot(CsvSeed)
     report = Slot(CsvReport)
     analysis = Slot(MedianAnalysis)
-    cmd_seed = Slot(SeedCommand)
-    cmd_point = Slot(PointCommand)
-    cmd_load = Slot(LoadCommand)
-    cmd_smoke = Slot(SmokeCommand)
-    cmd_plan = Slot(PlanCommand)
-    cmd_analyze = Slot(AnalyzeCommand)
 
     def __init__(self) -> None:
         super().__init__()
@@ -140,3 +136,16 @@ class PerfUnit[RowType](CliUnit):
         for client in clients:
             await client.asyncSetUp()
         return clients
+
+
+class PerfStandProject(Project):
+    """
+    The base of the projects of the scenarios of a stand: the unit ``perf``
+    a scenario narrows to its own, ``perf = Slot(EchoPerf)``, and its
+    commands on the command line, ``perf seed``, ``perf point``. A client
+    project with commands of its own joins its unit ``cli`` with
+    :class:`PerfCliUnit`.
+    """
+
+    perf: Slot[PerfUnit[t.Any]] = Slot(PerfUnit)
+    cli = Slot(PerfCliUnit)

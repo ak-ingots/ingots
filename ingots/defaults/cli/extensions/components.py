@@ -1,6 +1,11 @@
 """The commands of the components."""
 
-__all__ = ("ListComponentsCommand", "RunComponentsForeverCommand", "RunForeverCliArgs")
+__all__ = (
+    "ComponentsCommandsUnit",
+    "ListComponentsCommand",
+    "RunComponentsForeverCommand",
+    "RunForeverCliArgs",
+)
 
 import argparse
 import asyncio
@@ -8,8 +13,10 @@ import logging
 import typing as t
 from dataclasses import dataclass
 
-from ingots.puer import Component
-from ingots.puer.cli import BaseCommand
+from ingots.puer import Component, Slot
+
+from ..command import BaseCommand
+from ..unit import CommandsUnit
 
 if t.TYPE_CHECKING:
     from ingots.defaults.project import Project
@@ -75,3 +82,11 @@ class RunComponentsForeverCommand(BaseCommand):
     @t.override
     def _stop(self) -> None:
         self._stopped.set()
+
+
+class ComponentsCommandsUnit(CommandsUnit):
+    """``components``: ``list``, ``run-forever``."""
+
+    cli_description = "The components of the project."
+    list = Slot(ListComponentsCommand)
+    run_forever = Slot(RunComponentsForeverCommand)

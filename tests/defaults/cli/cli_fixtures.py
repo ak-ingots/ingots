@@ -1,7 +1,7 @@
 """
 A shop driven from the command line: commands that finish, one that runs
-until stopped, one that ignores stopping, one that fails, and units that stay
-off the command line.
+until stopped, one that ignores stopping, one that fails, and a group with no
+command, left off.
 """
 
 import argparse
@@ -12,8 +12,9 @@ import typing as t
 import weakref
 from dataclasses import dataclass
 
-from ingots.puer import Project, Slot, Unit
-from ingots.puer.cli import BaseCommand, CliProject, CliUnit
+from ingots.defaults import Project
+from ingots.defaults.cli import BaseCommand, CliUnit, CommandsUnit
+from ingots.puer import Slot
 
 # what happened during a run: the project is gone when the run returns
 EVENTS: list[str] = []
@@ -42,7 +43,8 @@ class GreetCommand(BaseCommand):
 
     @t.override
     async def _run(self) -> None:
-        created = sorted(k for k in vars(self.project) if k.startswith("_slot_"))
+        cli = vars(self.project.cli)
+        created = sorted(k for k in cli if k.startswith("_slot_"))
         EVENTS.append(f"hello {self.cli_args.name}; created: {', '.join(created)}")
 
 
@@ -51,7 +53,7 @@ class GreetingsArgs:
     loud: bool
 
 
-class GreetingsUnit(CliUnit):
+class GreetingsUnit(CommandsUnit):
     cli_description = "GreetingsUnit."
     cli_args: GreetingsArgs
     greet = Slot(GreetCommand)
@@ -99,7 +101,7 @@ class StubbornCommand(BaseCommand):
             raise
 
 
-class ServerUnit(CliUnit):
+class ServerUnit(CommandsUnit):
     serve = Slot(ServeCommand)
     run_stubborn = Slot(StubbornCommand)
 
@@ -110,23 +112,20 @@ class FailCommand(BaseCommand):
         raise RuntimeError("boom")
 
 
-class HiddenUnit(Unit):
-    """Not a CLI unit: its command stays off the command line."""
-
-    greet = Slot(GreetCommand)
+class EmptyUnit(CommandsUnit):
+    """A group without commands: left out of the command line."""
 
 
-class EmptyUnit(CliUnit):
-    """A CLI unit without commands: left out of the command line."""
-
-
-class ShopProject(CliProject):
+class ShopCliUnit(CliUnit):
     cli_description = "The shop."
     greetings = Slot(GreetingsUnit)
     server = Slot(ServerUnit)
     fail = Slot(FailCommand)
-    hidden = Slot(HiddenUnit)
     empty = Slot(EmptyUnit)
+
+
+class ShopProject(Project):
+    cli = Slot(ShopCliUnit)
 
     @t.override
     async def _configure(self) -> None:
@@ -136,14 +135,3 @@ class ShopProject(CliProject):
     @t.override
     async def _shut_down(self) -> None:
         EVENTS.append("shut down")
-
-
-class NoCommandsProject(CliProject):
-    empty = Slot(EmptyUnit)
-    hidden = Slot(HiddenUnit)
-
-
-class PlainProject(Project):
-    """Not a CLI project: adds no options, gets no arguments."""
-
-    greetings = Slot(GreetingsUnit)

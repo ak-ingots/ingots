@@ -6,10 +6,8 @@ import inspect
 import logging
 import typing as t
 
-from ingots.puer import Slot, UserError
-from ingots.puer.cli import CliUnit
+from ingots.puer import Slot, Unit, UserError
 
-from .commands import ListConfigsCommand
 from .configs import Configs, get_config, iter_configs
 from .loaders import BaseLoader, CliLoader, EnvLoader, FileLoader
 
@@ -21,10 +19,9 @@ if t.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class SettingsUnit(CliUnit):
+class SettingsUnit(Unit):
     """
-    Holds the configs of the project and everything serving them; on the
-    command line, the ``settings`` commands.
+    Holds the configs of the project and everything serving them.
 
     Configuring the settings runs in two phases. The loaders of
     :attr:`LOADERS` collect the overrides of their sources, the later
@@ -44,12 +41,10 @@ class SettingsUnit(CliUnit):
 
     LOADERS: t.ClassVar[tuple[str, ...]] = ("file_loader", "env_loader", "cli_loader")
 
-    cli_description = "The settings of the project."
     configs = Slot(Configs)
     file_loader = Slot(FileLoader)
     env_loader = Slot(EnvLoader)
     cli_loader = Slot(CliLoader)
-    list = Slot(ListConfigsCommand)
 
     @t.override
     @classmethod

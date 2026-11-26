@@ -3,9 +3,9 @@ import io
 import typing as t
 from unittest import mock
 
+from ingots.defaults.cli import CliUnit, CommandRunner, CommandsUnit
 from ingots.defaults.operations import BaseOperationCommand, Caller
 from ingots.puer import Slot
-from ingots.puer.cli import CliUnit, CommandRunner
 
 from tests import TestCase
 
@@ -15,7 +15,6 @@ from .operations_fixtures import (
     REFUND,
     Receipt,
     ShopProject,
-    ShopUnit,
 )
 
 if t.TYPE_CHECKING:
@@ -25,7 +24,6 @@ REFUNDER: t.Final = Caller(uid="refunder", permissions=REFUND)
 
 
 class PayCommand(BaseOperationCommand[PayParameters, Receipt]):
-    cli_name = "pay"
     project: "CommandsProject"
 
     @t.override
@@ -39,22 +37,22 @@ class PayCommand(BaseOperationCommand[PayParameters, Receipt]):
 
 
 class RefunderPayCommand(PayCommand):
-    cli_name = "pay-as-refunder"
-
     @t.override
     def _get_caller(self) -> Caller:
         return REFUNDER
 
 
-class ShopCommandsUnit(ShopUnit, CliUnit):
-    cli_name = "shop"
+class ShopCommandsUnit(CommandsUnit):
+    pay = Slot(PayCommand)
+    pay_as_refunder = Slot(RefunderPayCommand)
 
-    cmd_pay = Slot(PayCommand)
-    cmd_pay_as_refunder = Slot(RefunderPayCommand)
+
+class ShopCliUnit(CliUnit):
+    shop = Slot(ShopCommandsUnit)
 
 
 class CommandsProject(ShopProject):
-    shop = Slot(ShopCommandsUnit)
+    cli = Slot(ShopCliUnit)
 
 
 class OperationCommandTestCase(TestCase):

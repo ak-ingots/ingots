@@ -8,7 +8,7 @@ import typing as t
 import unittest
 from unittest import mock
 
-from ingots.puer.cli import CommandRunner
+from ingots.defaults.cli import CommandRunner
 from ingots.testing import OutsideRunError, RunTestsCommand, TestsFailedError
 from ingots.testing.commands import get_package
 

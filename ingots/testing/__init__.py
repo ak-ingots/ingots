@@ -11,12 +11,13 @@ __all__ = (
     "ProjectTestCase",
     "RunTestsCliArgs",
     "RunTestsCommand",
+    "TestingCliUnit",
+    "TestingCommandsUnit",
     "TestingProject",
-    "TestingUnit",
     "TestsFailedError",
 )
 
 from .commands import RunTestsCliArgs, RunTestsCommand
 from .errors import OutsideRunError, TestsFailedError
 from .fixtures import FIXTURE_CONFIGS, ProjectFixture, ProjectTestCase
-from .project import TestingProject, TestingUnit
+from .project import TestingCliUnit, TestingCommandsUnit, TestingProject

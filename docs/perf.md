@@ -12,7 +12,8 @@ calls `perf seed`, `perf point` and `perf analyze`.
 A stand is a directory: `perf.ini`, the configs of every scenario,
 `scenarios/<name>.py` a scenario each, `scenarios/<name>.ini` the configs
 of one, `reports/` the reports of the runs. A scenario is a module giving
-`PerfProject`: the project of the client it loads with the unit `perf`, a
+`PerfProject`: the project of the client it loads, a
+{py:class}`~ingots.perf.PerfStandProject`, with the unit `perf`, a
 {py:class}`~ingots.perf.PerfUnit`, and the configs of a run,
 {py:class}`~ingots.perf.PerfConfigs`, joined to those of the client:
 
@@ -22,7 +23,10 @@ keeps `work/` and `reports/dry/` out of git. A scenario imports the
 project of its client as the stand runs it: from the directory of its
 example, say, so that the packages of the example import. The modules of
 the stand import too, `project.py` beside `scenarios/` the base they share:
-the stand is a project of its own, apart from its example.
+the stand is a project of its own, apart from its example. That base
+inherits {py:class}`~ingots.perf.PerfStandProject` first, which puts the
+commands `perf` on its command line; a client of an addon with commands of
+its own joins its `cli` with {py:class}`~ingots.perf.PerfCliUnit`.
 
 ```python
 import dataclasses

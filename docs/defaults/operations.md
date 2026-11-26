@@ -202,8 +202,6 @@ doing what it needs with the result. It runs as the root,
 
 ```python
 class PayCommand(BaseOperationCommand[PayParameters, Receipt]):
-    cli_name = "pay"
-
     @t.override
     def _get_operation(self) -> "BoundFactory[PayOperation]":
         return self.project.shop.pay

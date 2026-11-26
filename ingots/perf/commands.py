@@ -5,6 +5,8 @@ __all__ = (
     "AnalyzeCommand",
     "LoadCliArgs",
     "LoadCommand",
+    "PerfCliUnit",
+    "PerfCommandsUnit",
     "PlanCommand",
     "PointCliArgs",
     "PointCommand",
@@ -25,7 +27,8 @@ import typing as t
 from dataclasses import dataclass
 from pathlib import Path
 
-from ingots.puer.cli import BaseCommand
+from ingots.defaults.cli import BaseCommand, CliUnit, CommandsUnit
+from ingots.puer import Slot
 
 from .clients import Recorder
 from .configs import iter_perf_configs
@@ -38,9 +41,7 @@ from .reports import ReportRow, show_config
 if t.TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from ingots.defaults import Project
-
-    from . import PerfUnit
+    from . import PerfStandProject
     from .clients import LoadClient
 
 logger = logging.getLogger(__name__)
@@ -53,21 +54,20 @@ START_MARGIN = 0.2
 
 
 class BasePerfCommand(BaseCommand):
-    """A command of the unit ``perf``, its scenario its parent's."""
+    """A command of ``cli.perf``, running the unit ``perf`` of its project."""
 
-    parent: "PerfUnit[t.Any]"
-    project: "Project"
+    parent: "PerfCommandsUnit"
+    project: "PerfStandProject"
 
 
 class SeedCommand(BasePerfCommand):
     """``perf seed``: the rows the scenario needs ahead, into ``seed.csv``."""
 
-    cli_name = "seed"
     cli_description = "Seeds what the scenario needs ahead, for its largest point."
 
     @t.override
     async def _run(self) -> None:
-        unit = self.parent
+        unit = self.project.perf
         rows = await unit.seed.write(max(unit._get_configs().PERF_GROUPS, default=1))
         logger.info("seeded %d rows into %s", rows, unit.seed.path)
 
@@ -89,7 +89,6 @@ class PointCommand(BasePerfCommand):
     run, its INI told of the run, the host and the role.
     """
 
-    cli_name = "point"
     cli_description = "Runs a point of the load and appends it to the report."
     cli_args: PointCliArgs
 
@@ -112,7 +111,7 @@ class PointCommand(BasePerfCommand):
 
     @t.override
     async def _run(self) -> None:
-        unit = self.parent
+        unit = self.project.perf
         configs = unit._get_configs()
         groups = self.cli_args.groups
         procs = max(1, min(groups, configs.PERF_LOAD_PROCS))
@@ -162,7 +161,7 @@ class PointCommand(BasePerfCommand):
         """The command line of a process of the load, the project's own options."""
         module = sys.modules[type(self.project).__module__]
         argv = [sys.executable, "-m", "ingots.perf", t.cast(str, module.__file__)]
-        args = self.project.cli_args
+        args = self.project.cli.cli_args
         for path in args.configs_files:
             argv += ["--configs-file", str(path)]
         for name, value in args.configs:
@@ -170,7 +169,7 @@ class PointCommand(BasePerfCommand):
         argv += ["--config", "IS_PRINT_CONFIGS=off"]
         return [
             *argv,
-            *self.parent.full_name.split("."),
+            *self.parent.full_name.split(".")[1:],  # from the root, cli
             "load",
             *("--groups", str(groups), "--part", str(part), "--parts", str(parts)),
             *("--out", str(out)),
@@ -183,7 +182,7 @@ class PointCommand(BasePerfCommand):
         services: dict[str, float],
         swapped: int,
     ) -> list[ReportRow]:
-        configs = self.parent._get_configs()
+        configs = self.project.perf._get_configs()
         duration = configs.PERF_DURATION
         calls = [call for part in parts for call in part.calls]
         measured = measure_actions(calls, duration, configs.PERF_MIN_CALLS)
@@ -249,7 +248,6 @@ class LoadCommand(BasePerfCommand):
     over, then writes what it measured in the window to ``--out``.
     """
 
-    cli_name = "load"
     cli_description = "A process of a point of the load; perf point starts it."
     cli_args: LoadCliArgs
 
@@ -274,7 +272,7 @@ class LoadCommand(BasePerfCommand):
 
     @t.override
     async def _run(self) -> None:
-        unit = self.parent
+        unit = self.project.perf
         configs = unit._get_configs()
         args = self.cli_args
         rows = unit.seed.read()
@@ -330,12 +328,11 @@ class SmokeCommand(BasePerfCommand):
     out of git.
     """
 
-    cli_name = "smoke"
     cli_description = "Runs a group of the scenario once; fails on an error."
 
     @t.override
     async def _run(self) -> None:
-        unit = self.parent
+        unit = self.project.perf
         configs = unit._get_configs()
         recorder = Recorder(0, math.inf)
         async with asyncio.timeout(configs.PERF_DURATION):
@@ -375,7 +372,6 @@ class AnalyzeCommand(BasePerfCommand):
     candidate against the baseline, by the analysis of the unit.
     """
 
-    cli_name = "analyze"
     cli_description = "Prints the candidate against the baseline in a report."
     cli_args: AnalyzeCliArgs
 
@@ -395,7 +391,7 @@ class AnalyzeCommand(BasePerfCommand):
 
     @t.override
     async def _run(self) -> None:
-        unit = self.parent
+        unit = self.project.perf
         reports = get_stand(self.project) / unit._get_configs().PERF_REPORTS
         path = reports / unit._get_scenario() / f"{self.cli_args.run}.csv"
         print(f"{unit._get_scenario()}, {self.cli_args.run}: baseline -> candidate")
@@ -410,12 +406,29 @@ class PlanCommand(BasePerfCommand):
     so that a runner takes them by ``eval`` and parses no file.
     """
 
-    cli_name = "plan"
     cli_description = "Prints the configs of a run for the shell of a runner."
 
     @t.override
     async def _run(self) -> None:
-        configs = self.parent._get_configs()
+        configs = self.project.perf._get_configs()
         for config in iter_perf_configs():
             text = show_config(getattr(configs, config.name))
             print(f"{config.name}={shlex.quote(text)}")
+
+
+class PerfCommandsUnit(CommandsUnit):
+    """``perf``: the commands of the load of the scenario."""
+
+    cli_description = "The load of the scenario."
+    seed = Slot(SeedCommand)
+    point = Slot(PointCommand)
+    load = Slot(LoadCommand)
+    smoke = Slot(SmokeCommand)
+    plan = Slot(PlanCommand)
+    analyze = Slot(AnalyzeCommand)
+
+
+class PerfCliUnit(CliUnit):
+    """The command line of the defaults and ``perf``."""
+
+    perf = Slot(PerfCommandsUnit)

@@ -17,10 +17,10 @@ the settings and the logging. The API may still change between minor versions.
 
 ## Where to go next
 
-- {doc}`concepts/index`: projects, units, entities and slots; the command
-  line; the components.
-- {doc}`defaults/index`: the standard units: the settings, the logging and
-  the components.
+- {doc}`concepts/index`: projects, units, entities and slots; the
+  components.
+- {doc}`defaults/index`: the standard units: the command line, the
+  settings, the logging and the components.
 - {doc}`testing`: the project of a test case, a fixture.
 - {doc}`perf`: the load of a project, its scenarios and points.
 - {doc}`reference/index`: the Python API.

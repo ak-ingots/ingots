@@ -6,11 +6,10 @@ a turn of the event loop; ``stand/`` its stand, its modules loaded by path.
 import asyncio
 import pathlib
 
-from ingots.defaults import Project
 from ingots.defaults.settings import SettingsUnit
 from ingots.defaults.settings.configs import IntConfig
 from ingots.puer import Entity, Slot
-from ingots.perf import PerfConfigs
+from ingots.perf import PerfConfigs, PerfStandProject
 
 STAND = pathlib.Path(__file__).parent / "stand"
 
@@ -31,7 +30,7 @@ class ScenariosSettingsUnit(SettingsUnit):
     configs = Slot(ScenariosConfigs)
 
 
-class ScenariosProject(Project):
+class ScenariosProject(PerfStandProject):
     env_configs_prefix = "PERF_TEST"
     settings = Slot(ScenariosSettingsUnit)
     echo = Slot(EchoClient)

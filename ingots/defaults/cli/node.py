@@ -10,21 +10,16 @@ if t.TYPE_CHECKING:
 
 class CliNode:
     """
-    A participant of the command line: a project, a unit, a command or a
-    runner. Its class adds its options to its own parser and builds its CLI
+    A participant of the command line: the root ``cli``, a group, a command
+    or the runner. Its class adds its options to its own parser and builds its CLI
     arguments from the parsed namespace; the runner hands them to the
     instance. A subclass narrows their type with an annotation:
     ``cli_args: MyCliArgs``.
 
     Option destinations share one namespace: prefix them with the node's
     name (``dest="greet_name"``).
-
-    ``cli_name`` is the sub-command of a unit or a command, taken from its
-    slot when empty: ``cmd_get = Slot(GetCommand)`` with ``cli_name = "get"``
-    is ``get``, not ``cmd-get``.
     """
 
-    cli_name: t.ClassVar[str] = ""
     cli_description: t.ClassVar[str] = ""
 
     @classmethod

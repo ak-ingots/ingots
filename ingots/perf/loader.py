@@ -10,15 +10,17 @@ import typing as t
 from pathlib import Path
 
 from ingots.defaults import Project
-from ingots.puer.cli import CommandRunner
+from ingots.defaults.cli import CommandRunner
 
 from .errors import ScenarioModuleError
 
 if t.TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from . import PerfStandProject
 
-def load_scenario(path: "Path") -> type[Project]:
+
+def load_scenario(path: "Path") -> "type[PerfStandProject]":
     """
     The ``PerfProject`` of the module of a scenario, loaded by its path, not
     as a package, so that ``scenarios/`` of a stand does not shadow the
@@ -26,10 +28,11 @@ def load_scenario(path: "Path") -> type[Project]:
     ``scenarios/``, joins the end of the path of imports: its modules, the
     base its scenarios share, import, the packages of the example first.
 
-    :raises ScenarioModuleError: no such module, or it gives no project
-        whose slot ``perf`` is a :class:`~ingots.perf.PerfUnit`.
+    :raises ScenarioModuleError: no such module, or it gives no
+        :class:`~ingots.perf.PerfStandProject` whose slot ``perf`` is a
+        :class:`~ingots.perf.PerfUnit`.
     """
-    from . import PerfUnit
+    from . import PerfStandProject, PerfUnit
 
     if not path.is_file():
         raise ScenarioModuleError.for_module(str(path), "no such module")
@@ -43,12 +46,15 @@ def load_scenario(path: "Path") -> type[Project]:
     sys.modules[name] = module  # the dataclasses of its rows resolve by it
     spec.loader.exec_module(module)
     project_cls = getattr(module, "PerfProject", None)
-    if not (isinstance(project_cls, type) and issubclass(project_cls, Project)):
-        raise ScenarioModuleError.for_module(str(path), "no PerfProject, a project")
-    perf_slot = getattr(project_cls, "perf", None)
-    if not issubclass(getattr(perf_slot, "cls", type(None)), PerfUnit):
+    if not (
+        isinstance(project_cls, type) and issubclass(project_cls, PerfStandProject)
+    ):
         raise ScenarioModuleError.for_module(
-            str(path), "PerfProject has no slot perf of a PerfUnit"
+            str(path), "no PerfProject, a PerfStandProject"
+        )
+    if project_cls.perf.cls is PerfUnit:
+        raise ScenarioModuleError.for_module(
+            str(path), "PerfProject gives no PerfUnit of its own in its slot perf"
         )
     return project_cls
 

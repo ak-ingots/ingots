@@ -72,10 +72,14 @@ project is, by the environment of its prefix, `--config` and
 their own configs winning:
 
 ```python
+class ScenariosCliUnit(TestingCliUnit, GrpcCliUnit): ...
+
+
 class ScenariosProject(TestingProject, GrpcProject):
     env_configs_prefix = "GAME_TEST"
     settings = Slot(ScenariosSettingsUnit)
     grpc = Slot(ScenariosGrpcUnit)  # a client of the application
+    cli = Slot(ScenariosCliUnit)  # testing and the commands of the addon
 
 
 class SignUpScenario(ProjectTestCase):

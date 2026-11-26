@@ -8,11 +8,12 @@ import tempfile
 import typing as t
 from unittest import mock
 
-from ingots.defaults import Project, ProjectCliArgs
+from ingots.defaults import Project
+from ingots.defaults.cli import ProjectCliArgs
 from ingots.defaults.settings import ConfigsError, SettingsUnit
 from ingots.defaults.settings.loaders import FileLoader, JsonFormat, Overrides
 from ingots.puer import Slot
-from ingots.puer.cli import CliParser, CommandRunner
+from ingots.defaults.cli import CliParser, CommandRunner
 
 from tests import TestCase
 
@@ -45,7 +46,7 @@ class LoaderTestCase(TestCase):
         self, project_cls: type[AppProject] = AppProject, **cli_args: t.Any
     ) -> AppProject:
         project = project_cls()
-        project._cli_set_args(ProjectCliArgs(**cli_args))
+        project.cli._cli_set_args(ProjectCliArgs(**cli_args))
         return project
 
 

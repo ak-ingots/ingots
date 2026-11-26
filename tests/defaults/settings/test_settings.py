@@ -8,7 +8,7 @@ from ingots.defaults.settings.configs import (
     get_config,
     iter_configs,
 )
-from ingots.puer.cli import CommandRunner
+from ingots.defaults.cli import CommandRunner
 
 from tests import TestCase
 

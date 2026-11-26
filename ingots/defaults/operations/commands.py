@@ -5,7 +5,7 @@ __all__ = ("BaseOperationCommand",)
 import abc
 import typing as t
 
-from ingots.puer.cli import BaseCommand
+from ..cli import BaseCommand
 
 if t.TYPE_CHECKING:
     from ingots.defaults.project import Project
@@ -23,8 +23,6 @@ class BaseOperationCommand[ParametersType, ResultType](BaseCommand):
     :meth:`run_operation` and does what it needs with the result::
 
         class ListTagsCommand(BaseOperationCommand[None, tuple[Tag, ...]]):
-            cli_name = "list"
-
             @t.override
             def _get_operation(self) -> "BoundFactory[ListTags]":
                 return self.project.tags.op_list

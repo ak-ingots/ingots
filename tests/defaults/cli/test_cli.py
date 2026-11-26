@@ -4,17 +4,15 @@ import io
 import typing as t
 import unittest
 
-from ingots.puer.cli import (
-    BaseCommand,
-    CliNode,
+from ingots.defaults.cli import (
     CliParser,
-    CliProject,
     CliTree,
-    CliUnit,
     CommandRunner,
     CommandRunnerCliArgs,
+    CommandsUnit,
+    ProjectCliArgs,
 )
-
+from ingots.defaults.components import ComponentsUnit
 from ingots.puer import Slot
 
 from tests import TestCase
@@ -26,8 +24,7 @@ from .cli_fixtures import (
     GreetArgs,
     GreetingsUnit,
     GreetingsArgs,
-    NoCommandsProject,
-    PlainProject,
+    ShopCliUnit,
     ShopProject,
 )
 
@@ -55,6 +52,13 @@ class CliTreeTestCase(unittest.TestCase):
         self.assertEqual(
             list_tree(CliParser(ShopProject, CommandRunner).tree),
             [
+                "settings settings",
+                "  list settings.list",
+                "logging logging",
+                "  info logging.info",
+                "components components",
+                "  list components.list",
+                "  run-forever components.run_forever",
                 "greetings greetings",
                 "  greet greetings.greet",
                 "server server",
@@ -64,46 +68,15 @@ class CliTreeTestCase(unittest.TestCase):
             ],
         )
 
-    def test_a_class_names_its_sub_command(self) -> None:
-        class GetCommand(BaseCommand):
-            cli_name = "get"
-
-            @t.override
-            async def _run(self) -> None:
-                pass
-
-        class TagsUnit(CliUnit):
-            cli_name = "labels"
-            cmd_get = Slot(GetCommand)
-
-        class TagsProject(ShopProject):
-            unit_tags = Slot(TagsUnit)
-
-        tree = CliParser(TagsProject, CommandRunner).tree
-        self.assertEqual(
-            list_tree(tree)[-2:], ["labels unit_tags", "  get unit_tags.cmd_get"]
-        )
-
-    def test_two_slots_giving_one_sub_command_are_refused(self) -> None:
-        class GetCommand(BaseCommand):
-            cli_name = "get"
-
-            @t.override
-            async def _run(self) -> None:
-                pass
-
-        class TagsUnit(CliUnit):
-            get = Slot(GetCommand)
-            cmd_get = Slot(GetCommand)
-
-        class TagsProject(CliProject):
-            tags = Slot(TagsUnit)
-
+    def test_a_group_holds_only_commands_and_groups(self) -> None:
         with self.assertRaisesRegex(
             TypeError,
-            "TagsUnit: the slots get and cmd_get give the same sub-command 'get'",
+            "Mixed.components: ComponentsUnit is not on the command line; a "
+            "command reaches its domain through the project",
         ):
-            CliParser(TagsProject, CommandRunner)
+
+            class Mixed(CommandsUnit):
+                components = Slot(ComponentsUnit)
 
     def test_the_help_lists_the_commands(self) -> None:
         out = io.StringIO()
@@ -111,7 +84,9 @@ class CliTreeTestCase(unittest.TestCase):
             CommandRunner(ShopProject, ["--help"]).run()
         self.assertEqual(exit.exception.code, 0)
         self.assertIn("The shop.", out.getvalue())
-        self.assertIn("{greetings,server,fail}", out.getvalue())
+        self.assertIn(
+            "{settings,logging,components,greetings,server,fail}", out.getvalue()
+        )
         self.assertIn("--graceful-timeout SECONDS", out.getvalue())
 
     def test_a_unit_help_shows_the_first_line_of_a_command_description(self) -> None:
@@ -132,26 +107,19 @@ class CliTreeTestCase(unittest.TestCase):
     def test_a_runner_takes_its_own_parser(self) -> None:
         class SnakeCaseParser(CliParser):
             @t.override
-            def _get_cli_name(self, slot_name: str, cls: type[CliNode]) -> str:
+            def _get_cli_name(self, slot_name: str) -> str:
                 return slot_name
 
         class Runner(CommandRunner):
             cli_parser_cls = SnakeCaseParser
 
-        server = SnakeCaseParser(ShopProject, Runner).tree.children[1]
+        server = SnakeCaseParser(ShopProject, Runner).tree.children[4]
         self.assertEqual(server.children[1].name, "run_stubborn")
         with (
             contextlib.redirect_stderr(io.StringIO()),
             self.assertRaises(SystemExit),
         ):
             Runner(ShopProject, ["server", "run-stubborn"]).run()
-
-    def test_a_project_without_commands_is_refused(self) -> None:
-        err = io.StringIO()
-        with contextlib.redirect_stderr(err), self.assertRaises(SystemExit) as exit:
-            CommandRunner(NoCommandsProject, []).run()
-        self.assertEqual(exit.exception.code, 2)
-        self.assertIn("the project declares no commands", err.getvalue())
 
 
 class FiniteCommandTestCase(RunnerTestCase):
@@ -167,23 +135,22 @@ class FiniteCommandTestCase(RunnerTestCase):
         class Recorder(GreetCommand):
             @t.override
             async def _run(self) -> None:
-                project = self.project
-                received.extend(
-                    [project.cli_args, project.greetings.cli_args, self.cli_args]
-                )
+                cli = self.project.cli
+                received.extend([cli.cli_args, cli.greetings.cli_args, self.cli_args])
 
         class RecordingGreetings(GreetingsUnit):
             greet = Slot(Recorder)
 
-        class Project(ShopProject):
+        class RecordingCliUnit(ShopCliUnit):
             greetings = Slot(RecordingGreetings)
 
-        CommandRunner(Project, ["greetings", "--loud", "greet", "--name", "Bo"]).run()
-        self.assertEqual(received, [None, GreetingsArgs(loud=True), GreetArgs("Bo")])
+        class Project(ShopProject):
+            cli = Slot(RecordingCliUnit)
 
-    def test_a_plain_project_runs_the_commands_of_its_cli_units(self) -> None:
-        self.assertEqual(CommandRunner(PlainProject, ["greetings", "greet"]).run(), 0)
-        self.assertEqual(EVENTS, ["hello world; created: _slot_greetings"])
+        CommandRunner(Project, ["greetings", "--loud", "greet", "--name", "Bo"]).run()
+        self.assertEqual(
+            received, [ProjectCliArgs(), GreetingsArgs(loud=True), GreetArgs("Bo")]
+        )
 
     def test_a_failing_command_exits_with_1_and_still_shuts_down(self) -> None:
         with self.assertLogs("ingots.puer.runner", "ERROR"):
@@ -236,7 +203,7 @@ class LifetimeTestCase(RunnerTestCase):
 
     def test_a_node_off_the_command_path_has_no_cli_args(self) -> None:
         project = ShopProject()
-        greet = project.greetings.greet
+        greet = project.cli.greetings.greet
         if t.TYPE_CHECKING:
             t.assert_type(greet.cli_args, GreetArgs)
         with self.assertRaisesRegex(RuntimeError, "not on the path"):
