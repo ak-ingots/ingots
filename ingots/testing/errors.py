@@ -13,6 +13,8 @@ class TestsFailedError(UserError):
     unittest told which above. Create it with :meth:`for_counts`.
     """
 
+    args: tuple[str, int, int]
+
     @classmethod
     def for_counts(cls, failed: int, run: int) -> t.Self:
         """The error of ``failed`` tests of ``run``."""
@@ -21,16 +23,16 @@ class TestsFailedError(UserError):
     @property
     def failed(self) -> int:
         """The tests failed, errors included."""
-        return t.cast(int, self.args[1])
+        return self.args[1]
 
     @property
     def run(self) -> int:
         """The tests run."""
-        return t.cast(int, self.args[2])
+        return self.args[2]
 
     @t.override
     def __str__(self) -> str:
-        return t.cast(str, self.args[0])
+        return self.args[0]
 
 
 class OutsideRunError(Exception):
@@ -40,6 +42,8 @@ class OutsideRunError(Exception):
     Create it with :meth:`for_package`.
     """
 
+    args: tuple[str, str]
+
     @classmethod
     def for_package(cls, package: str) -> t.Self:
         """The error of the tests of ``package``, telling the command."""
@@ -48,8 +52,8 @@ class OutsideRunError(Exception):
     @property
     def package(self) -> str:
         """The package of the project, run by ``python -m``."""
-        return t.cast(str, self.args[1])
+        return self.args[1]
 
     @t.override
     def __str__(self) -> str:
-        return t.cast(str, self.args[0])
+        return self.args[0]

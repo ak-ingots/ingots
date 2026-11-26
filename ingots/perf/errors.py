@@ -14,6 +14,8 @@ class ScenarioModuleError(UserError):
     it with :meth:`for_module`.
     """
 
+    args: tuple[str, str]
+
     @classmethod
     def for_module(cls, path: str, reason: str) -> t.Self:
         """The error of the module at ``path``, telling why."""
@@ -22,11 +24,11 @@ class ScenarioModuleError(UserError):
     @property
     def path(self) -> str:
         """The path of the module."""
-        return t.cast(str, self.args[1])
+        return self.args[1]
 
     @t.override
     def __str__(self) -> str:
-        return t.cast(str, self.args[0])
+        return self.args[0]
 
 
 class SmokeFailedError(UserError):
@@ -34,6 +36,8 @@ class SmokeFailedError(UserError):
     A dry point of ``perf smoke`` found an action that erred, or no action
     measured at all. Create it with :meth:`for_errors`.
     """
+
+    args: tuple[str, str, tuple[str, ...]]
 
     @classmethod
     def for_errors(cls, scenario: str, errors: tuple[str, ...]) -> t.Self:
@@ -44,13 +48,13 @@ class SmokeFailedError(UserError):
     @property
     def scenario(self) -> str:
         """The name of the scenario."""
-        return t.cast(str, self.args[1])
+        return self.args[1]
 
     @property
     def errors(self) -> tuple[str, ...]:
         """The errors met, ``action: Error``; none when no action was measured."""
-        return t.cast(tuple[str, ...], self.args[2])
+        return self.args[2]
 
     @t.override
     def __str__(self) -> str:
-        return t.cast(str, self.args[0])
+        return self.args[0]

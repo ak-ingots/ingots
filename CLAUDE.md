@@ -99,6 +99,12 @@ Logs of a run: `INGOTS_TEST_LOG=info make test` (test cases derive from
 - A TODO names its issue of GitHub, `# TODO(#42): ...`, of another
   repository `# TODO(ak-ingots/ingots#42): ...`: one without an issue is
   never done. No issue, no TODO: do it now, or open the issue first.
+- A type is narrowed by an annotation in the class, not by `t.cast` at
+  each use: an entity its project or parent, `project: "AuthProject"`,
+  `parent: AuthProofsOwner`, a mixin too, a mixin of two projects naming a
+  type of both; an error its `args`, `args: tuple[str, int]`. `t.cast`
+  stays where no class can carry the type: a function whose parameter
+  cannot be narrowed, a value from a library or from outside.
 - Code layout and naming follow ADR 0007: class members and module contents
   top-down, verbs for methods, `Base` only for incomplete classes
   (`@abc.abstractmethod`, no `ABC`), mixin members under the mixin's prefix
