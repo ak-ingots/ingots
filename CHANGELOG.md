@@ -5,6 +5,52 @@ are the previous implementation.
 
 <!-- towncrier release notes start -->
 
+## [0.38.0] - 2026-11-26
+### Added
+- The completion of the command line by bash: `completion bash` prints its
+  script, built from the classes, no Python run on Tab; each node completes
+  its sub-commands and its options, an option its value after a space or an
+  `=`, by its `choices` or by the hook of its node, `_cli_complete()`, which
+  gives a `CliCompletion`: the names of the configs after `--config`, the
+  paths of the components after `--component`, the files after
+  `--configs-file`. A console script is completed by its name; a script,
+  `./manage.py`, `python manage.py`, `uv run manage.py`, by its absolute path;
+  a module, `python -m shop`, `uv run -m shop`, by its name; any other line
+  by the completion bound to the name before, or loaded for it. A command is
+  quiet by `cli_is_quiet`: no configs printed on configuring unless asked;
+  the commands printing for an operator or a shell are. `examples/demo` is an
+  application of the defaults run by `./manage.py`.
+
+### Changed
+- The command line is a domain of the defaults, `ingots.defaults.cli`, the
+  unit `cli` of the project: its root `CliUnit` takes the options of the
+  project, `--config` and `--configs-file`, read from `project.cli.cli_args`,
+  and the commands of the defaults; its sub-commands are groups of commands,
+  `CommandsUnit`, a slot of one holding a group or a command, else the class
+  fails. The domains hold no command: `SettingsUnit`, `LoggingUnit` and
+  `ComponentsUnit` are plain units, their commands in `SettingsCommandsUnit`,
+  `LoggingCommandsUnit` and `ComponentsCommandsUnit`. An addon extends the
+  root with the group of its commands, `AuthCliUnit(CliUnit)`, and an
+  application joins the roots of its addons, as it joins their settings. The
+  name of a slot is its sub-command: `cli_name` is gone. The command lines
+  stay as they were. `ingots.testing` gives `TestingCommandsUnit` and
+  `TestingCliUnit`, `TestingUnit` gone; `ingots.perf` gives
+  `PerfCommandsUnit`, `PerfCliUnit` and `PerfStandProject`, the base of the
+  project of a scenario, `PerfUnit` a plain unit.
+- `IS_PRINT_CONFIGS` is off by default: `settings list` prints the configs on
+  demand. Printed on configuring, they go to the standard error, as the logs
+  do, so that the output of a command is its own; `settings list` prints them
+  to the standard output.
+
+### Fixed
+- A command line missing its sub-command names the sub-commands it takes,
+  `{settings,logging,...}`, not the internal `_cli_level_0`.
+
+### Removed
+- `ingots.puer.cli` and `CliProject`: the command line moved to
+  `ingots.defaults.cli`, `ingots.defaults.Project` no longer a node of it;
+  `ProjectCliArgs` is in `ingots.defaults.cli`.
+
 ## [0.37.0] - 2026-11-24
 ### Added
 - The events, `ingots.defaults.events`, `project.events` of the defaults: an
