@@ -16,6 +16,8 @@ class OperationPermissionsError(Exception):
     so the error survives pickling; create it with :meth:`for_caller`.
     """
 
+    args: "tuple[str, Caller, str, Permissions]"
+
     @classmethod
     def for_caller(
         cls, caller: "Caller", run_uid: str, required: "Permissions"
@@ -31,18 +33,18 @@ class OperationPermissionsError(Exception):
     @property
     def caller(self) -> "Caller":
         """The caller refused."""
-        return t.cast("Caller", self.args[1])
+        return self.args[1]
 
     @property
     def run_uid(self) -> str:
         """The uid of the refused run."""
-        return t.cast(str, self.args[2])
+        return self.args[2]
 
     @property
     def required(self) -> "Permissions":
         """The permissions the operation requires."""
-        return t.cast("Permissions", self.args[3])
+        return self.args[3]
 
     @t.override
     def __str__(self) -> str:
-        return t.cast(str, self.args[0])
+        return self.args[0]

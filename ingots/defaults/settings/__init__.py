@@ -130,6 +130,8 @@ class ConfigsError(UserError):
     :meth:`from_problems`.
     """
 
+    args: tuple[str, tuple[str, ...]]
+
     @classmethod
     def from_problems(cls, problems: "Sequence[str]") -> t.Self:
         """The error of the problems, one line each, logged already."""
@@ -142,11 +144,11 @@ class ConfigsError(UserError):
     @property
     def problems(self) -> tuple[str, ...]:
         """The problems, one line each."""
-        return t.cast(tuple[str, ...], self.args[1])
+        return self.args[1]
 
     @t.override
     def __str__(self) -> str:
-        return t.cast(str, self.args[0])
+        return self.args[0]
 
 
 def check_loader_slots(cls: type[SettingsUnit]) -> None:
