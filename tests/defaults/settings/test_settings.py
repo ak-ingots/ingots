@@ -100,14 +100,17 @@ class SettingsTestCase(TestCase):
         return out.getvalue()
 
     def test_configuring_applies_the_overrides_and_prints_them(self) -> None:
-        self.assertEqual(
-            self.run_project(
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            out = self.run_project(
                 AppProject,
                 *("--config", "IS_PRINT_CONFIGS=on", "--config", "HTTP_PORT=9090"),
                 *("--config", "DB_MODE=FAST", "settings", "list"),
-            ),
-            PRINTED * 2,  # on configuring, then by the command
-        )
+            )
+        # on configuring, a diagnostic; then by the command, its result
+        # the logs of the run follow on the standard error
+        self.assertEqual(err.getvalue()[: len(PRINTED)], PRINTED)
+        self.assertEqual(out, PRINTED)
 
     def test_the_configs_are_printed_only_when_asked(self) -> None:
         self.assertEqual(

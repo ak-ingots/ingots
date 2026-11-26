@@ -52,7 +52,8 @@ $ app storage migrate
   NAME=value` and `--configs-file PATH`, read by the loaders of the
   {doc}`settings` from `project.cli.cli_args`, and the commands of the
   defaults: `settings list`, `logging info`, `components list` and
-  `components run-forever`.
+  `components run-forever`; and the commands of the command line itself,
+  `completion bash`.
 - An addon extends the root with the group of its own commands, as it
   extends the settings; an application taking several addons joins their
   roots in a class, `AppCliUnit(HttpCliUnit, DbCliUnit)`, a join forgotten
@@ -89,3 +90,114 @@ project as every runner does, with the command as the workflow:
 - `--debug` runs the asyncio event loop in debug mode;
 - the exit code is 0 when the command finishes, 1 when a stage fails or is
   cancelled, and 2 for a wrong command line, as usual for `argparse`.
+
+## The completion by bash
+
+`completion bash` prints the script of the completion of bash for the
+program run, built from the classes as the command line is: no Python runs
+on Tab. Each node completes its sub-commands and its options, the root
+those of the runner too; an option taking a value completes it, after a
+space or an `=`: its `choices`, the names of the configs after `--config`,
+the paths of the components after `--component`, the files after
+`--configs-file`. A value given is skipped.
+
+It needs bash 4.2 or later; bash-completion is not needed, and is
+honoured when it is there.
+
+### Installing it
+
+Once, the line of `~/.bashrc` that sources the completions of the scripts,
+whatever project they are of:
+
+```bash
+for f in ~/.local/share/ingots/completion/*.bash; do [[ -r $f ]] && source "$f"; done
+```
+
+Then, a project each, its file, named after the project, in the directory of
+the way it is run:
+
+```console
+$ mkdir -p ~/.local/share/ingots/completion
+$ ./manage.py completion bash > ~/.local/share/ingots/completion/shop.bash
+$ python -m shop completion bash > ~/.local/share/ingots/completion/shop.bash
+$ mkdir -p ~/.local/share/bash-completion/completions
+$ shop completion bash > ~/.local/share/bash-completion/completions/shop
+```
+
+A new terminal takes it; the one at hand, by `source` of the file. Then:
+
+```console
+$ ./manage.py se<Tab>                    # ./manage.py settings
+$ ./manage.py --config=SH<Tab>           # --config=SHOP_PORT=
+$ ./manage.py shop restock --mode=<Tab><Tab>   # fast  slow
+```
+
+Bash completes a word at once when one fits; when several do, the first Tab
+only beeps and the second lists them, `set show-all-if-ambiguous on` of
+`~/.inputrc` listing them at the first.
+
+How the program is found:
+
+- A console script, `shop`: bash binds the completion to its name and
+  loads its file of `completions/` on the first Tab.
+- A script, `./manage.py`, `python manage.py`, `uv run manage.py`, or a
+  module, `python -m shop`, `uv run -m shop`: the script binds a function
+  to the name of the script, to `python`, `python3` and `uv`, the same in
+  every script, which finds the completion of the script of the line by its
+  absolute path, from the directory at hand, past the options of python and
+  of `uv run`, or of the module by its name. Any other line goes to the
+  completion bound to that name before, or that bash-completion loads for
+  it, `uv add`, the `manage.py` of Django; then to the files.
+- `--command`, `--script` and `--module` name the program instead of the one
+  run.
+
+The name of the file is the operator's: what binds a script is its absolute
+path, written in the file. Two files of one name overwrite each other, so a
+file is named after its project.
+
+### When it does not complete
+
+| What is seen | Why | What to do |
+|---|---|---|
+| Nothing, in a terminal opened before the file | the file is sourced when a shell starts | a new terminal, or `source` the file |
+| The files, for the script of a project moved | the file binds the old path | build the file again |
+| Commands of the old version | the file is built from the classes, once | build the file again after an upgrade |
+| Nothing for `python manage.py`: `python: command not found` | no `python` on the host, only `python3` | `./manage.py`, `uv run manage.py` or `python3 manage.py` |
+| The completion of another project of one console name | bash binds a completion to a name, not to an environment | name their commands apart |
+| The options of `python` itself, `-X`, not completed | the function bound to `python` completes the scripts | of no matter for an application; remove the file to have them back |
+
+To see what bash calls for a program, `complete -p ./manage.py manage.py
+python uv`: ours start `_ingots_`. Bash looks up the path typed,
+`./manage.py`, before its name, `manage.py`: a Tab on it before the file is
+sourced leaves there the stub of bash-completion, `_comp_complete_minimal`,
+completing the files, which sourcing the file removes; `complete -r
+./manage.py` does it by hand.
+
+### Removing it
+
+Remove its file, `rm ~/.local/share/ingots/completion/shop.bash`; the
+terminals opened after complete as before. One at hand keeps the completion
+until it ends, or `exec bash` starts it again.
+
+### The output of a command for a shell
+
+A command printing for an operator or a shell is quiet,
+`cli_is_quiet = True`: the configs are not printed on configuring, unless
+the command line turns `IS_PRINT_CONFIGS` on; `settings list`, `logging
+info`, `components list`, `completion bash` and `perf plan` are.
+
+### The values of an option
+
+A node completes the value of an option of its own in `_cli_complete()`,
+from the classes of the project, a
+{py:class}`~ingots.defaults.cli.CliCompletion`:
+
+```python
+class RunComponentsForeverCommand(BaseCommand):
+    @classmethod
+    def _cli_complete(cls, project_cls: type[Project], dest: str) -> CliCompletion:
+        if dest == "run_forever_components":
+            paths = tuple(path for path, _ in project_cls.slots_walk(Component))
+            return CliCompletion(words=paths)
+        return super()._cli_complete(project_cls, dest)
+```

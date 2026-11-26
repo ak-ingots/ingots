@@ -11,6 +11,10 @@ domains hold no command.
 
 __all__ = (
     "BaseCommand",
+    "BashCompletion",
+    "BashCompletionCliArgs",
+    "BashCompletionCommand",
+    "CliCompletion",
     "CliNode",
     "CliParser",
     "CliTree",
@@ -18,6 +22,9 @@ __all__ = (
     "CommandRunner",
     "CommandRunnerCliArgs",
     "CommandsUnit",
+    "CompletionCommandsUnit",
+    "CompletionKind",
+    "CompletionTarget",
     "ComponentsCommandsUnit",
     "ListComponentsCommand",
     "ListConfigsCommand",
@@ -32,12 +39,22 @@ __all__ = (
 
 import argparse
 import typing as t
-from dataclasses import dataclass
 from pathlib import Path
 
+if t.TYPE_CHECKING:
+    from ingots.defaults.project import Project
+
+from ingots.defaults.settings.configs import iter_configs
 from ingots.puer import Slot
 
 from .command import BaseCommand
+from .commands import (
+    BashCompletionCliArgs,
+    BashCompletionCommand,
+    CompletionCommandsUnit,
+)
+from .completion import BashCompletion, CompletionKind, CompletionTarget
+from .data import CliCompletion, ProjectCliArgs
 from .extensions.components import (
     ComponentsCommandsUnit,
     ListComponentsCommand,
@@ -52,25 +69,14 @@ from .runner import CommandRunner, CommandRunnerCliArgs
 from .unit import CommandsUnit
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
-class ProjectCliArgs:
-    """
-    The overrides of the configs on the command line. Keyword-only, so the
-    arguments of a subclass add fields of their own, with or without
-    defaults.
-    """
-
-    configs: tuple[tuple[str, str], ...] = ()
-    configs_files: tuple[Path, ...] = ()
-
-
 class CliUnit(CommandsUnit):
     """
     The root of the command line, the unit ``cli`` of the project: the
     options of the project, ``--config`` and ``--configs-file``, read by the
     loaders of the settings, and the commands of the defaults, ``settings``,
-    ``logging``, ``components``. An addon extends it with the group of its
-    own, as it extends the settings::
+    ``logging``, ``components``, and the command line's own,
+    ``completion``. An addon extends it with the group of its own, as it
+    extends the settings::
 
         class AuthCliUnit(CliUnit):
             auth = Slot(AuthCommandsUnit)
@@ -82,6 +88,7 @@ class CliUnit(CommandsUnit):
     settings = Slot(SettingsCommandsUnit)
     logging = Slot(LoggingCommandsUnit)
     components = Slot(ComponentsCommandsUnit)
+    completion = Slot(CompletionCommandsUnit)
 
     @staticmethod
     def _cli_check_config(option: str) -> tuple[str, str]:
@@ -118,6 +125,17 @@ class CliUnit(CommandsUnit):
             metavar="PATH",
             help="overrides configs from an INI or JSON file; repeat for more",
         )
+
+    @t.override
+    @classmethod
+    def _cli_complete(cls, project_cls: "type[Project]", dest: str) -> CliCompletion:
+        if dest == "project_configs":
+            configs_cls = project_cls.settings.cls.configs.cls
+            names = tuple(f"{config.name}=" for config in iter_configs(configs_cls))
+            return CliCompletion(words=names, is_spaced=False)
+        if dest == "project_configs_files":
+            return CliCompletion(files=True)
+        return super()._cli_complete(project_cls, dest)
 
     @t.override
     @classmethod

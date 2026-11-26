@@ -3,7 +3,7 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 .DELETE_ON_ERROR:
 
-SRC := ingots tests docs/conf.py
+SRC := ingots tests docs/conf.py examples
 DOC_OUT := docs/build
 
 PYTHONS ?= 3.14 3.15
@@ -27,7 +27,9 @@ check: lint test coverage wheel-test doc cl-check  ## Every check: lint, test, c
 lint:  ## black --check, flake8, mypy --strict
 	uv run black --check --diff $(SRC)
 	uv run flake8 $(SRC)
-	uv run --group doc mypy $(SRC)
+	uv run --group doc mypy $(filter-out examples,$(SRC))
+	# an example is an application of its own, its modules at its root
+	uv run --group doc mypy examples/demo
 
 .PHONY: test
 test:  ## unittest on the working tree
@@ -54,7 +56,7 @@ installed-test:
 		trap 'rm -rf "$$tmp"' EXIT; \
 		uv venv --quiet --python $$py "$$tmp/venv"; \
 		uv pip install --quiet --python "$$tmp/venv/bin/python" "$(WHEEL)"; \
-		cp -r tests "$$tmp/"; \
+		cp -r tests examples "$$tmp/"; \
 		(cd "$$tmp" && INGOTS_WHEEL_TEST=1 venv/bin/python -m unittest discover -s tests -t .); \
 		rm -rf "$$tmp"; \
 	done

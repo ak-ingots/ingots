@@ -4,6 +4,7 @@ __all__ = ("ConfigsError", "SettingsUnit")
 
 import inspect
 import logging
+import sys
 import typing as t
 
 from ingots.puer import Slot, Unit, UserError
@@ -13,6 +14,7 @@ from .loaders import BaseLoader, CliLoader, EnvLoader, FileLoader
 
 if t.TYPE_CHECKING:
     from collections.abc import Sequence
+    from typing import TextIO
 
     from .loaders import Overrides
 
@@ -57,7 +59,7 @@ class SettingsUnit(Unit):
         """Loads and applies the overrides, then prints the configs if asked."""
         self.configs.apply(self.convert_overrides(await self.load_overrides()))
         if self.configs.IS_PRINT_CONFIGS:
-            self.print_configs()
+            self.print_configs(sys.stderr)
 
     async def load_overrides(self) -> tuple["Overrides", ...]:
         """The overrides of every loader of :attr:`LOADERS`, in its order."""
@@ -100,13 +102,17 @@ class SettingsUnit(Unit):
             logger.warning("%s; ignored", problem)
         return values
 
-    def print_configs(self) -> None:
-        """Prints every config with its value, sorted by name; secrets masked."""
+    def print_configs(self, file: "TextIO | None" = None) -> None:
+        """
+        Prints every config with its value, sorted by name, secrets masked,
+        to ``file``, the standard output by default.
+        """
         configs = self.configs
-        print("Configs:")
+        print("Configs:", file=file)
         for config in iter_configs(type(configs)):
-            print(f"{config.name} = {config.format_value(config.get_value(configs))}")
-        print("-" * 12)
+            value = config.format_value(config.get_value(configs))
+            print(f"{config.name} = {value}", file=file)
+        print("-" * 12, file=file)
 
     def _is_strict(self, values: dict[str, object], sources: dict[str, t.Any]) -> bool:
         name = Configs.IS_STRICT_CONFIGS.name

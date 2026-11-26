@@ -166,7 +166,6 @@ class PointCommand(BasePerfCommand):
             argv += ["--configs-file", str(path)]
         for name, value in args.configs:
             argv += ["--config", f"{name}={value}"]
-        argv += ["--config", "IS_PRINT_CONFIGS=off"]
         return [
             *argv,
             *self.parent.full_name.split(".")[1:],  # from the root, cli
@@ -248,6 +247,7 @@ class LoadCommand(BasePerfCommand):
     over, then writes what it measured in the window to ``--out``.
     """
 
+    cli_is_quiet = True
     cli_description = "A process of a point of the load; perf point starts it."
     cli_args: LoadCliArgs
 
@@ -406,6 +406,7 @@ class PlanCommand(BasePerfCommand):
     so that a runner takes them by ``eval`` and parses no file.
     """
 
+    cli_is_quiet = True
     cli_description = "Prints the configs of a run for the shell of a runner."
 
     @t.override

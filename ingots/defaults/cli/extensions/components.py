@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from ingots.puer import Component, Slot
 
 from ..command import BaseCommand
+from ..data import CliCompletion
 from ..unit import CommandsUnit
 
 if t.TYPE_CHECKING:
@@ -32,6 +33,7 @@ class RunForeverCliArgs:
 class ListComponentsCommand(BaseCommand):
     """Prints the components of the project, as ``run-forever`` takes them."""
 
+    cli_is_quiet = True
     cli_description = "Prints the components of the project."
     project: "Project"
 
@@ -61,6 +63,14 @@ class RunComponentsForeverCommand(BaseCommand):
             help="a component to run, as `components list` prints it; repeat "
             "for more",
         )
+
+    @t.override
+    @classmethod
+    def _cli_complete(cls, project_cls: "type[Project]", dest: str) -> CliCompletion:
+        if dest == "run_forever_components":
+            paths = tuple(path for path, _ in project_cls.slots_walk(Component))
+            return CliCompletion(words=paths)
+        return super()._cli_complete(project_cls, dest)
 
     @t.override
     @classmethod

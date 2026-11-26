@@ -65,6 +65,13 @@ class CliParser:
         """The command tree."""
         return self._tree
 
+    def find_node(self, path: tuple[str, ...]) -> CliTree:
+        """The node of the tree at a slot path, ``()`` the root."""
+        node = self._tree
+        for name in path:
+            node = next(child for child in node.children if child.path[-1] == name)
+        return node
+
     def parse(self, argv: "Sequence[str] | None") -> ParsedCommandLine:
         """
         Parses ``argv``, ``sys.argv[1:]`` when ``None``. Exits with code 2 on
@@ -116,8 +123,14 @@ class CliParser:
         if not tree.children:
             return
 
+        # argparse names a sub-command missing by its metavar, else by its
+        # dest, which is internal: the metavar is what the usage shows
+        names = ",".join(child.name for child in tree.children)
         subparsers = parser.add_subparsers(
-            title="commands", dest=f"_cli_level_{len(tree.path)}", required=True
+            title="commands",
+            dest=f"_cli_level_{len(tree.path)}",
+            metavar=f"{{{names}}}",
+            required=True,
         )
         for child in tree.children:
             description = self._get_description(child.cls)

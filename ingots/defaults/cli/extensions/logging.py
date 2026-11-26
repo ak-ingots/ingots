@@ -19,6 +19,7 @@ if t.TYPE_CHECKING:
 class LoggingInfoCommand(BaseCommand):
     """Prints the logging configuration the project runs with."""
 
+    cli_is_quiet = True
     cli_description = "Prints the logging configuration of the project."
     project: "Project"
 
