@@ -8,7 +8,8 @@ import types
 import typing as t
 import unittest
 
-from ingots.defaults import Project, ProjectCliArgs
+from ingots.defaults import Project
+from ingots.defaults.cli import ProjectCliArgs
 
 from .commands import RunTestsCommand, get_package
 from .errors import OutsideRunError
@@ -92,7 +93,7 @@ class ProjectFixture[ProjectType: Project]:
             **self.configs,
         }
         files = run.configs_files if run else ()
-        project._cli_set_args(
+        project.cli._cli_set_args(
             ProjectCliArgs(configs=tuple(configs.items()), configs_files=files)
         )
         with contextlib.nullcontext() if run else hide_env(project.env_configs_prefix):

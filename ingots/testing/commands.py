@@ -12,8 +12,8 @@ import unittest
 from dataclasses import dataclass
 from pathlib import Path
 
-from ingots.defaults import Project, ProjectCliArgs
-from ingots.puer.cli import BaseCommand
+from ingots.defaults import Project
+from ingots.defaults.cli import BaseCommand, ProjectCliArgs
 
 from .errors import TestsFailedError
 
@@ -97,7 +97,7 @@ class RunTestsCommand(BaseCommand):
     @t.override
     async def _run(self) -> None:
         project_cls = type(self.project)
-        self._runs[project_cls] = self.project.cli_args
+        self._runs[project_cls] = self.project.cli.cli_args
         try:
             result = await asyncio.to_thread(self._run_tests)
         finally:

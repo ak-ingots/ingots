@@ -1,10 +1,16 @@
 """The commands of the settings."""
 
-__all__ = ("ListConfigsCommand",)
+__all__ = (
+    "SettingsCommandsUnit",
+    "ListConfigsCommand",
+)
 
 import typing as t
 
-from ingots.puer.cli import BaseCommand
+from ingots.puer import Slot
+
+from ..command import BaseCommand
+from ..unit import CommandsUnit
 
 if t.TYPE_CHECKING:
     from ingots.defaults.project import Project
@@ -19,3 +25,10 @@ class ListConfigsCommand(BaseCommand):
     @t.override
     async def _run(self) -> None:
         self.project.settings.print_configs()
+
+
+class SettingsCommandsUnit(CommandsUnit):
+    """``settings``: ``list``."""
+
+    cli_description = "The settings of the project."
+    list = Slot(ListConfigsCommand)

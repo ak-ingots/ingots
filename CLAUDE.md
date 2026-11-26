@@ -17,9 +17,9 @@ The concepts are documented in `docs/concepts/`, each part of the defaults
 in `docs/defaults/`; `docs/contributing.md` is for contributors.
 
 - `puer/`: the PUER core, the project, the unit, the entity, the runner;
-  `slots/`, the typed slots and their checks; `components/`; `cli/`, the
-  command line.
-- `defaults/`: `Project` (`project.py`) and its units: `settings/`,
+  `slots/`, the typed slots and their checks; `components/`.
+- `defaults/`: `Project` (`project.py`) and its units: `cli/`, the command
+  line, a domain, the commands of the others in `cli/extensions/`, `settings/`,
   `logging/`, `components/`, `operations/` (the permissions, the callers,
   the groups run all or each), `events/` (published after the commit of the
   transaction holding them).

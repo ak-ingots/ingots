@@ -21,7 +21,7 @@ class CliLoader(BaseLoader):
     @t.override
     async def load(self) -> list[Overrides]:
         try:
-            args = self.project.cli_args
+            args = self.project.cli.cli_args
         except RuntimeError:  # not run from the command line
             return []
         return [Overrides("the command line", dict(args.configs))]

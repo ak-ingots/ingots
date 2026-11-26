@@ -222,7 +222,8 @@ drops it.
 It assumes nothing about where a run's input comes from: a subclass
 implements the workflow, `_run_workflow()` and, to stop without being
 cancelled, `_stop_workflow()`, and sets `_debug` and `_graceful_timeout` in
-`_prepare_run()`. {doc}`cli` is one such runner.
+`_prepare_run()`. The {doc}`command runner <../defaults/cli>` of the
+defaults is one such runner.
 
 ## What to call, what to override
 

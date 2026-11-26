@@ -14,7 +14,7 @@ the very start of the process, before any config is read:
 import sys
 
 from ingots.defaults.logging import configure_startup_logging
-from ingots.puer.cli import CommandRunner
+from ingots.defaults.cli import CommandRunner
 
 
 def main() -> None:

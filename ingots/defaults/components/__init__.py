@@ -1,24 +1,17 @@
-"""The components: the unit running and listing the components of a project."""
+"""The components: the unit listing the components of a project."""
 
 __all__ = ("ComponentsUnit",)
 
-from ingots.puer import Component, Slot
-from ingots.puer.cli import CliUnit
-
-from .commands import ListComponentsCommand, RunComponentsForeverCommand
+from ingots.puer import Component, Unit
 
 
-class ComponentsUnit(CliUnit):
+class ComponentsUnit(Unit):
     """
-    The components of the project on the command line: ``components list``
-    prints them, ``components run-forever --component PATH`` runs some of
-    them, servers typically, until stopped. The project shuts them down,
-    whatever runs them.
+    The components of the project, those its slots hold wherever they are;
+    the commands ``components list`` and ``components run-forever`` of the
+    command line print and run them. The project shuts them down, whatever
+    runs them.
     """
-
-    cli_description = "The components of the project."
-    list = Slot(ListComponentsCommand)
-    run_forever = Slot(RunComponentsForeverCommand)
 
     def print_components(self) -> None:
         """Prints every component with its path, class and order."""

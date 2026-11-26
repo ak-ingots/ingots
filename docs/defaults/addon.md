@@ -5,7 +5,8 @@ the defaults, and from the same few classes on top of it. Its settings and
 its logging are not two independent units: the settings declare the configs
 of the logging, the logging reads them through the project. So an addon
 customizes both at two points, its configs and its logging unit, and adds
-the units of its own domain next to them.
+the units of its own domain next to them, and its commands to the command
+line.
 
 ## The starting point
 
@@ -28,8 +29,8 @@ from ingots.defaults.settings.configs import (
     LogLevelConfig,
     StrConfig,
 )
+from ingots.defaults.cli import BaseCommand, CliUnit, CommandRunner, CommandsUnit
 from ingots.puer import Slot
-from ingots.puer.cli import BaseCommand, CliUnit, CommandRunner
 
 logger = logging.getLogger(__name__)
 
@@ -70,15 +71,19 @@ class ServeCommand(BaseCommand):
         self._stopped.set()
 
 
-class HttpUnit(CliUnit):
+class HttpCommandsUnit(CommandsUnit):
     cli_description = "The HTTP server."
     serve = Slot(ServeCommand)
+
+
+class HttpCliUnit(CliUnit):
+    http = Slot(HttpCommandsUnit)
 
 
 class HttpProject(Project):
     settings = Slot(HttpSettingsUnit)
     logging = Slot(HttpLoggingUnit)
-    http = Slot(HttpUnit)
+    cli = Slot(HttpCliUnit)
 
 
 def main() -> None:
@@ -98,8 +103,10 @@ Level by level:
   are extended the same way, each part calling `super()`. Its `project`
   annotation narrows the back-reference, so the configs of the domain are
   typed. See {doc}`logging`.
-- **The domain.** `HttpUnit` is a unit of the addon's own, with its commands;
-  every entity reaches the configs through the project.
+- **The commands.** `HttpCommandsUnit` groups the commands of the addon,
+  `http serve`, and `HttpCliUnit` adds it to the command line of the
+  defaults; a command reaches its domain, here the configs, through the
+  project. The units of the domain hold no command; see {doc}`cli`.
 - **The project.** `HttpProject` takes the three slots. It is what an
   application inherits from, and runs the addon on its own: `main()` and
   the environment prefix of the defaults, `INGOT`, serve that run; an
@@ -122,8 +129,8 @@ to the logger: see {doc}`logging`.
 
 ## An application of two addons
 
-An application joining two such addons joins the three slots that both
-extend, one short class each; the parts of the logging configuration of
+An application joining two such addons joins the slots that both extend,
+one short class each; the parts of the logging configuration of
 both addons meet through `super()`:
 
 ```python
@@ -137,12 +144,16 @@ class AppSettingsUnit(HttpSettingsUnit, DbSettingsUnit):
 class AppLoggingUnit(HttpLoggingUnit, DbLoggingUnit): ...
 
 
+class AppCliUnit(HttpCliUnit, DbCliUnit): ...
+
+
 class AppProject(HttpProject, DbProject):
     env_configs_prefix = "APP"
     settings = Slot(AppSettingsUnit)
     logging = Slot(AppLoggingUnit)
+    cli = Slot(AppCliUnit)
 ```
 
-A slot that only one addon declares, `http`, is inherited as it is.
+A slot that only one addon declares is inherited as it is.
 Forgetting a join fails at import time with a `TypeError` naming the slot;
 two addons declaring one config name fail the same way.

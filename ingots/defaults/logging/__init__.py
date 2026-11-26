@@ -6,10 +6,8 @@ import logging
 import logging.config
 import typing as t
 
-from ingots.puer import Slot
-from ingots.puer.cli import CliUnit
+from ingots.puer import Unit
 
-from .commands import LoggingInfoCommand
 from .context import LogContextFilter
 from .startup import configure_startup_logging
 
@@ -22,10 +20,10 @@ if t.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class LoggingUnit(CliUnit):
+class LoggingUnit(Unit):
     """
     Configures the logging from the ``LOGGING_*`` configs, once the settings
-    are configured; on the command line, the ``logging`` commands.
+    are configured.
 
     The configuration is a :func:`logging.config.dictConfig` dictionary, built
     by part: a subclass extends :meth:`build_formatters`,
@@ -34,9 +32,7 @@ class LoggingUnit(CliUnit):
     configured wins.
     """
 
-    cli_description = "The logging of the project."
     project: "Project"
-    info = Slot(LoggingInfoCommand)
 
     async def configure(self) -> None:
         """Applies the configuration built from the configs."""

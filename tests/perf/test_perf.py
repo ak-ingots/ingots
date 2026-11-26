@@ -95,12 +95,17 @@ class LoadScenarioTestCase(PerfTestCase):
 
     def test_a_module_a_run_cannot_take(self) -> None:
         cases = {
-            "nothing.py": ("x = 1\n", "no PerfProject, a project"),
-            "number.py": ("PerfProject = 1\n", "no PerfProject, a project"),
-            "bare.py": (
+            "nothing.py": ("x = 1\n", "no PerfProject, a PerfStandProject"),
+            "number.py": ("PerfProject = 1\n", "no PerfProject, a PerfStandProject"),
+            "plain.py": (
                 "from ingots.defaults import Project\n"
                 "class PerfProject(Project):\n    pass\n",
-                "PerfProject has no slot perf of a PerfUnit",
+                "no PerfProject, a PerfStandProject",
+            ),
+            "bare.py": (
+                "from ingots.perf import PerfStandProject\n"
+                "class PerfProject(PerfStandProject):\n    pass\n",
+                "PerfProject gives no PerfUnit of its own in its slot perf",
             ),
         }
         for name, (text, reason) in cases.items():

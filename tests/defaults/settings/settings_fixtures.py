@@ -5,7 +5,8 @@ import enum
 import typing as t
 from dataclasses import dataclass
 
-from ingots.defaults import Project, ProjectCliArgs
+from ingots.defaults import Project
+from ingots.defaults.cli import CliUnit, ProjectCliArgs
 from ingots.defaults.settings import SettingsUnit
 from ingots.defaults.settings.loaders import BaseLoader, Overrides
 from ingots.defaults.settings.configs import (
@@ -101,7 +102,7 @@ class VerboseCliArgs(ProjectCliArgs):
     verbose: bool
 
 
-class VerboseProject(AppProject):
+class VerboseCliUnit(CliUnit):
     """Adds an option of its own to those of the defaults."""
 
     cli_args: VerboseCliArgs
@@ -121,6 +122,10 @@ class VerboseProject(AppProject):
             configs_files=base.configs_files,
             verbose=namespace.verbose,
         )
+
+
+class VerboseProject(AppProject):
+    cli = Slot(VerboseCliUnit)
 
 
 class DefaultPrefixProject(Project):

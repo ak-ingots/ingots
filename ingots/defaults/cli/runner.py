@@ -16,7 +16,7 @@ from .parser import CliParser, ParsedCommandLine
 if t.TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from ingots.puer.project import Project
+    from ingots.defaults.project import Project
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +29,10 @@ class CommandRunnerCliArgs:
 
 class CommandRunner(CliNode, BaseRunner):
     """
-    Builds the command line from the project's slots and runs the chosen
-    command; a stop signal calls the command's :meth:`~BaseCommand.stop`.
-    Only the units on the command's path are created, each with its CLI
-    arguments.
+    Builds the command line from the unit ``cli`` of the project and runs
+    the chosen command; a stop signal calls the command's
+    :meth:`~BaseCommand.stop`. Only the groups on the command's path are
+    created, each with its CLI arguments, the unit ``cli`` with the project.
 
     Usage, in the application's entry point::
 
@@ -45,6 +45,7 @@ class CommandRunner(CliNode, BaseRunner):
 
     cli_args: CommandRunnerCliArgs
     cli_parser_cls: t.ClassVar[type[CliParser]] = CliParser
+    _project_cls: type["Project"]
 
     @staticmethod
     def _cli_check_graceful_timeout(value: str) -> float:
@@ -95,7 +96,7 @@ class CommandRunner(CliNode, BaseRunner):
 
     @t.override
     async def _run_workflow(self) -> int:
-        command = self._command = self._set_cli_args_on_path()
+        command = self._command = self._set_cli_args_on_path(self._get_project())
         logger.info("running %s", ".".join(self._command_line.command_path))
         try:
             await command._run()
@@ -110,8 +111,8 @@ class CommandRunner(CliNode, BaseRunner):
 
     @t.override
     def _create_project(self) -> "Project":
-        project = super()._create_project()
-        self._set_cli_args(project, ())
+        project = self._project_cls()
+        self._set_cli_args(project.cli, ())
         return project
 
     @t.override
@@ -122,10 +123,15 @@ class CommandRunner(CliNode, BaseRunner):
         self._debug = self.cli_args.debug
         self._graceful_timeout = self.cli_args.graceful_timeout
 
-    def _set_cli_args_on_path(self) -> BaseCommand:
+    def _get_project(self) -> "Project":
+        project = self.project
+        assert isinstance(project, self._project_cls)
+        return project
+
+    def _set_cli_args_on_path(self, project: "Project") -> BaseCommand:
         # every node on the command's path, down to the command at its end;
         # getting them through the slots creates them, and only them
-        owner: object = self.project
+        owner: CliNode = project.cli
         path = self._command_line.command_path
         for depth, name in enumerate(path, 1):
             owner = getattr(owner, name)
@@ -133,6 +139,5 @@ class CommandRunner(CliNode, BaseRunner):
         assert isinstance(owner, BaseCommand), owner
         return owner
 
-    def _set_cli_args(self, obj: object, path: tuple[str, ...]) -> None:
-        if isinstance(obj, CliNode):
-            obj._cli_set_args(self._command_line.node_args[path])
+    def _set_cli_args(self, node: CliNode, path: tuple[str, ...]) -> None:
+        node._cli_set_args(self._command_line.node_args[path])

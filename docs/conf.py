@@ -1,3 +1,4 @@
+import builtins
 import os
 import typing as t
 from importlib.metadata import version as _dist_version
@@ -76,6 +77,10 @@ class _NearestPythonDomain(PythonDomain):
         searchmode: int = 0,
     ) -> "list[tuple[str, ObjectEntry]]":
         matches = super().find_obj(env, modname, classname, name, type, searchmode)
+        if searchmode and hasattr(builtins, name):
+            # a fuzzy search finds the slot ``list`` of a group of commands
+            # for the ``list`` of an annotation: the builtin, by intersphinx
+            return []
         if len(matches) < 2 or not modname:
             return matches
 

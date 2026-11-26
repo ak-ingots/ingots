@@ -90,7 +90,7 @@ class FileLoader(Unit, BaseLoader):
     @t.override
     async def load(self) -> list[Overrides]:
         try:
-            args = self.project.cli_args
+            args = self.project.cli.cli_args
         except RuntimeError:  # not run from the command line
             return []
         return [self._load_file(path) for path in args.configs_files]

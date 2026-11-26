@@ -5,7 +5,7 @@ import typing as t
 from unittest import mock
 
 from ingots.puer import Component
-from ingots.puer.cli import CommandRunner
+from ingots.defaults.cli import CommandRunner
 from ingots.puer.components import is_configured
 
 from tests import TestCase
@@ -41,7 +41,9 @@ class ComponentsTestCase(TestCase):
         )
 
     def test_run_forever_runs_the_components_until_stopped(self) -> None:
-        with self.assertLogs("ingots.defaults.components", "INFO") as logs:
+        with self.assertLogs(
+            "ingots.defaults.cli.extensions.components", "INFO"
+        ) as logs:
             code, _ = self.run_project(
                 "components", "run-forever", "--component", "http.server"
             )

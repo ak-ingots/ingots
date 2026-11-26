@@ -11,8 +11,10 @@ from .node import CliNode
 
 class BaseCommand(CliNode, Entity):
     """
-    A leaf of the command line: the work a runner runs. A command either
-    finishes by itself or runs until :meth:`stop` asks it to finish.
+    A leaf of the command line: the work a runner runs, its sub-command the
+    name of its slot. A command either finishes by itself or runs until
+    :meth:`stop` asks it to finish. It reaches the domain it serves through
+    its project: ``self.project.settings``.
     """
 
     @abc.abstractmethod
