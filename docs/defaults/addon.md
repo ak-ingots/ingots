@@ -117,8 +117,6 @@ Level by level:
 
 ```console
 $ INGOT_HTTP_PORT=9090 python -m ingot_http --config HTTP_LOGGING_LEVEL=debug http serve
-Configs:
-...
 2026-10-20 06:13:02,440 ▶ INFO ▶ serving on 127.0.0.1:9090 ▶ ingot_http:52 ▶ Task-3 ▶ -
 ```
 

@@ -19,6 +19,7 @@ if t.TYPE_CHECKING:
 class ListConfigsCommand(BaseCommand):
     """Prints the configs the project runs with."""
 
+    cli_is_quiet = True
     cli_description = "Prints the configs of the project."
     project: "Project"
 

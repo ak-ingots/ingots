@@ -45,7 +45,7 @@ class Configs(Entity):
     created: see :func:`check_configs`.
     """
 
-    IS_PRINT_CONFIGS = BoolConfig(True)
+    IS_PRINT_CONFIGS = BoolConfig(False)
     IS_STRICT_CONFIGS = BoolConfig(False)
     IS_CONFIGURE_LOGGING = BoolConfig(True)
 

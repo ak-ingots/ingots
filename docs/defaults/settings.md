@@ -78,9 +78,10 @@ project started with, and what it printed.
   time.
 - `Configs.apply()` checks every value before it sets any, and is called
   once.
-- When `IS_PRINT_CONFIGS` is on (the default), configuring prints every
-  config with its value, sorted by name; `app settings list` prints them on
-  demand.
+- When `IS_PRINT_CONFIGS` is on, off by default, configuring prints every
+  config with its value, sorted by name, to the standard error, a
+  diagnostic, as the logs are; `app settings list` prints them on demand,
+  to the standard output, its result.
 
 ## Overrides
 

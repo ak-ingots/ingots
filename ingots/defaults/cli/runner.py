@@ -3,13 +3,17 @@
 __all__ = ("CommandRunner", "CommandRunnerCliArgs")
 
 import argparse
+import dataclasses
 import logging
 import typing as t
 from dataclasses import dataclass
 
 from ingots.puer import BaseRunner
 
+from ingots.defaults.settings.configs import Configs
+
 from .command import BaseCommand
+from .data import ProjectCliArgs
 from .node import CliNode
 from .parser import CliParser, ParsedCommandLine
 
@@ -119,9 +123,24 @@ class CommandRunner(CliNode, BaseRunner):
     def _prepare_run(self) -> None:
         parser = self.cli_parser_cls(self._project_cls, type(self))
         self._command_line = parser.parse(self._argv)
+        command_cls = parser.find_node(self._command_line.command_path).cls
+        if issubclass(command_cls, BaseCommand) and command_cls.cli_is_quiet:
+            self._command_line = self._quiet(self._command_line)
         self._cli_set_args(self._command_line.runner_args)
         self._debug = self.cli_args.debug
         self._graceful_timeout = self.cli_args.graceful_timeout
+
+    def _quiet(self, command_line: ParsedCommandLine) -> ParsedCommandLine:
+        # an override of the command line before those given, which win
+        args = command_line.node_args[()]
+        if not isinstance(args, ProjectCliArgs):
+            return command_line
+        off = (Configs.IS_PRINT_CONFIGS.name, "off")
+        node_args = {
+            **command_line.node_args,
+            (): dataclasses.replace(args, configs=(off, *args.configs)),
+        }
+        return dataclasses.replace(command_line, node_args=node_args)
 
     def _get_project(self) -> "Project":
         project = self.project

@@ -1,3 +1,4 @@
+import argparse
 import contextlib
 import gc
 import io
@@ -59,6 +60,8 @@ class CliTreeTestCase(unittest.TestCase):
                 "components components",
                 "  list components.list",
                 "  run-forever components.run_forever",
+                "completion completion",
+                "  bash completion.bash",
                 "greetings greetings",
                 "  greet greetings.greet",
                 "server server",
@@ -85,7 +88,8 @@ class CliTreeTestCase(unittest.TestCase):
         self.assertEqual(exit.exception.code, 0)
         self.assertIn("The shop.", out.getvalue())
         self.assertIn(
-            "{settings,logging,components,greetings,server,fail}", out.getvalue()
+            "{settings,logging,components,completion,greetings,server,fail}",
+            out.getvalue(),
         )
         self.assertIn("--graceful-timeout SECONDS", out.getvalue())
 
@@ -97,12 +101,11 @@ class CliTreeTestCase(unittest.TestCase):
         self.assertNotIn("Politely.", out.getvalue())
 
     def test_a_command_is_required(self) -> None:
-        with (
-            contextlib.redirect_stderr(io.StringIO()),
-            self.assertRaises(SystemExit) as exit,
-        ):
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), self.assertRaises(SystemExit) as exit:
             CommandRunner(ShopProject, ["greetings"]).run()
         self.assertEqual(exit.exception.code, 2)
+        self.assertIn("the following arguments are required: {greet}", err.getvalue())
 
     def test_a_runner_takes_its_own_parser(self) -> None:
         class SnakeCaseParser(CliParser):
@@ -113,7 +116,7 @@ class CliTreeTestCase(unittest.TestCase):
         class Runner(CommandRunner):
             cli_parser_cls = SnakeCaseParser
 
-        server = SnakeCaseParser(ShopProject, Runner).tree.children[4]
+        server = SnakeCaseParser(ShopProject, Runner).tree.children[5]
         self.assertEqual(server.children[1].name, "run_stubborn")
         with (
             contextlib.redirect_stderr(io.StringIO()),
@@ -156,6 +159,69 @@ class FiniteCommandTestCase(RunnerTestCase):
         with self.assertLogs("ingots.puer.runner", "ERROR"):
             self.assertEqual(self.run_shop("fail"), 1)
         self.assertEqual(EVENTS, ["configure", "shut down"])
+
+
+class QuietCommandTestCase(RunnerTestCase):
+    def run_recording(self, quiet: bool, *argv: str) -> object:
+        received: list[object] = []
+
+        class Recorder(GreetCommand):
+            cli_is_quiet = quiet
+
+            @t.override
+            async def _run(self) -> None:
+                received.append(self.project.cli.cli_args)
+
+        class RecordingGreetings(GreetingsUnit):
+            greet = Slot(Recorder)
+
+        class RecordingCliUnit(ShopCliUnit):
+            greetings = Slot(RecordingGreetings)
+
+        class Project(ShopProject):
+            cli = Slot(RecordingCliUnit)
+
+        CommandRunner(Project, [*argv, "greetings", "greet"]).run()
+        (args,) = received
+        return args
+
+    def test_a_quiet_command_prints_no_configs_unless_asked(self) -> None:
+        self.assertEqual(
+            self.run_recording(True, "--config", "IS_PRINT_CONFIGS=on"),
+            ProjectCliArgs(
+                configs=(("IS_PRINT_CONFIGS", "off"), ("IS_PRINT_CONFIGS", "on"))
+            ),
+        )
+
+    def test_another_command_is_left_as_it_is(self) -> None:
+        self.assertEqual(self.run_recording(False), ProjectCliArgs())
+
+    def test_a_root_of_other_arguments_is_left_as_it_is(self) -> None:
+        received: list[object] = []
+
+        class Quiet(GreetCommand):
+            cli_is_quiet = True
+
+            @t.override
+            async def _run(self) -> None:
+                received.append(self.project.cli.cli_args)
+
+        class QuietGreetings(GreetingsUnit):
+            greet = Slot(Quiet)
+
+        class OwnCliUnit(ShopCliUnit):
+            greetings = Slot(QuietGreetings)
+
+            @t.override
+            @classmethod
+            def _cli_build_args(cls, namespace: argparse.Namespace) -> t.Any:
+                return "own"
+
+        class Project(ShopProject):
+            cli = Slot(OwnCliUnit)
+
+        CommandRunner(Project, ["greetings", "greet"]).run()
+        self.assertEqual(received, ["own"])
 
 
 class StoppingTestCase(RunnerTestCase):

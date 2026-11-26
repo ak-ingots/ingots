@@ -26,6 +26,8 @@ in `docs/defaults/`; `docs/contributing.md` is for contributors.
 - `testing/`: the project of a test case as a fixture, a project of
   scenarios run by its command `testing run`.
 - `perf/`: the load of a project, a scenario its project.
+- `examples/demo`: an application of the defaults alone, run by
+  `python manage.py`, tested by `tests/examples`.
 
 ## Commands
 

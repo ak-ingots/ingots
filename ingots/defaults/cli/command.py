@@ -3,6 +3,7 @@
 __all__ = ("BaseCommand",)
 
 import abc
+import typing as t
 
 from ingots.puer.entity import Entity
 
@@ -15,7 +16,13 @@ class BaseCommand(CliNode, Entity):
     name of its slot. A command either finishes by itself or runs until
     :meth:`stop` asks it to finish. It reaches the domain it serves through
     its project: ``self.project.settings``.
+
+    :attr:`cli_is_quiet` on, its output is its own: the configs are not
+    printed on configuring, ``IS_PRINT_CONFIGS`` off unless the command line
+    turns it on; for a command printing for an operator or a shell.
     """
+
+    cli_is_quiet: t.ClassVar[bool] = False
 
     @abc.abstractmethod
     async def _run(self) -> None:
